@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Listing } from "@homehunter/core";
+import type { Listing, ListingTimelineEvent } from "@homehunter/core";
 import { buildApi, type ListingsRepository } from "./server.ts";
 
 test("POST /listings stores a manually submitted immobilie1 URL", async () => {
@@ -100,6 +100,42 @@ test("GET /listings/:id returns a single listing", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.json(), created);
+});
+
+test("GET /listings/:id/timeline returns audit events for a listing", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
+  const created = await listingsRepository.createListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Manual listing from kleinanzeigen"
+  });
+  await listingsRepository.updateReviewDecision(created.id, "approved");
+
+  const response = await app.inject({
+    method: "GET",
+    url: `/listings/${created.id}/timeline`
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), [
+    {
+      id: "event-1",
+      listingId: created.id,
+      type: "listing_created",
+      message: "Listing created",
+      payload: { sourceId: "kleinanzeigen" },
+      createdAt: "2026-06-06T12:00:00.000Z"
+    },
+    {
+      id: "event-2",
+      listingId: created.id,
+      type: "review_decision",
+      message: "Review decision: approved",
+      payload: { decision: "approved" },
+      createdAt: "2026-06-06T12:05:00.000Z"
+    }
+  ]);
 });
 
 test("POST /listings/:id/review stores an approval decision", async () => {
@@ -245,6 +281,7 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
 
 function createMemoryListingsRepository(): ListingsRepository {
   const listings: Listing[] = [];
+  const timelineEvents: ListingTimelineEvent[] = [];
 
   return {
     async createListing(input) {
@@ -274,6 +311,14 @@ function createMemoryListingsRepository(): ListingsRepository {
       };
 
       listings.push(listing);
+      timelineEvents.push({
+        id: `event-${timelineEvents.length + 1}`,
+        listingId: listing.id,
+        type: "listing_created",
+        message: "Listing created",
+        payload: { sourceId: input.sourceId },
+        createdAt: now
+      });
 
       return listing;
     },
@@ -284,6 +329,10 @@ function createMemoryListingsRepository(): ListingsRepository {
 
     async getListingById(id) {
       return listings.find((listing) => listing.id === id) ?? null;
+    },
+
+    async listTimelineEvents(id) {
+      return timelineEvents.filter((event) => event.listingId === id);
     },
 
     async updateReviewDecision(id, decision) {
@@ -300,6 +349,14 @@ function createMemoryListingsRepository(): ListingsRepository {
       };
 
       listings[index] = updated;
+      timelineEvents.push({
+        id: `event-${timelineEvents.length + 1}`,
+        listingId: id,
+        type: "review_decision",
+        message: `Review decision: ${decision}`,
+        payload: { decision },
+        createdAt: updated.updatedAt
+      });
 
       return updated;
     },
@@ -319,6 +376,13 @@ function createMemoryListingsRepository(): ListingsRepository {
       };
 
       listings[index] = updated;
+      timelineEvents.push({
+        id: `event-${timelineEvents.length + 1}`,
+        listingId: id,
+        type: "letter_generated",
+        message: "Application letter generated",
+        createdAt: updated.updatedAt
+      });
 
       return updated;
     },
@@ -346,6 +410,17 @@ function createMemoryListingsRepository(): ListingsRepository {
       };
 
       listings[index] = updated;
+      timelineEvents.push({
+        id: `event-${timelineEvents.length + 1}`,
+        listingId: id,
+        type: "listing_extracted",
+        message: "Listing extracted",
+        payload: {
+          score: updated.score,
+          scoreLabel: updated.scoreLabel
+        },
+        createdAt: updated.updatedAt
+      });
 
       return updated;
     }

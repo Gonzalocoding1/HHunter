@@ -157,6 +157,7 @@ Current endpoints for Bilt and future Bilt MCP integration:
 - `GET /health`
 - `GET /listings`
 - `GET /listings/:id`
+- `GET /listings/:id/timeline`
 - `POST /listings`
 - `POST /listings/:id/extract`
 - `POST /listings/:id/generate-letter`
@@ -212,7 +213,7 @@ Phase 2:
 - [ ] Contact enrichment quality checks
 - [ ] Source-specific parsers
 - [ ] Background scheduling
-- [ ] Full status timeline
+- [x] Status timeline / audit log
 
 Phase 3:
 

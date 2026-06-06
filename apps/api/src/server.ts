@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import {
   applicationStatuses,
   type Listing,
+  type ListingTimelineEvent,
   reviewDecisions,
   type ReviewDecision,
   reviewStatuses,
@@ -29,6 +30,7 @@ export type ListingsRepository = {
   createListing: (input: CreateListingInput) => Promise<Listing>;
   listListings: () => Promise<Listing[]>;
   getListingById: (id: string) => Promise<Listing | null>;
+  listTimelineEvents: (id: string) => Promise<ListingTimelineEvent[]>;
   updateReviewDecision: (id: string, decision: ReviewDecision) => Promise<Listing | null>;
   saveApplicationDraft: (id: string, draft: string) => Promise<Listing | null>;
   updateListingExtraction: (id: string, extraction: UpdateListingExtractionInput) => Promise<Listing | null>;
@@ -66,6 +68,16 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     return listing;
+  });
+
+  server.get<{ Params: ListingParams }>("/listings/:id/timeline", async (request, reply) => {
+    const listing = await listingsRepository.getListingById(request.params.id);
+
+    if (!listing) {
+      return reply.code(404).send({ error: "listing not found" });
+    }
+
+    return listingsRepository.listTimelineEvents(request.params.id);
   });
 
   server.post<{ Body: CreateListingPayload }>("/listings", async (request, reply) => {

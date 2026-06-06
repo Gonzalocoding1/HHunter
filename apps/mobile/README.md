@@ -14,7 +14,7 @@ Create Listing -> Extract Details -> Enrich Contact -> Generate Letter -> Review
 - `Listing Detail`: extracted listing data, source URL, score, score reasons, contact data and raw confidence notes
 - `Letter Review`: generated German application letter with edit controls
 - `Approval`: approve, reject or keep for later
-- `Pipeline`: status overview for all listings
+- `Pipeline`: status overview and timeline for all listings
 
 ## Backend Contract
 
@@ -26,6 +26,7 @@ For the hackathon, approval should mark the listing as `ready_to_send`. It must 
 
 - `GET /listings`: load the review inbox.
 - `GET /listings/:id`: load one listing detail screen.
+- `GET /listings/:id/timeline`: load the audit trail for one listing.
 - `POST /listings/:id/extract`: fetch the source page and store extracted listing facts, relevance score, score reasons and contact data found in the listing text.
 - `POST /listings/:id/generate-letter`: create or refresh the German draft before review.
 - `POST /listings/:id/review`: submit a user decision.

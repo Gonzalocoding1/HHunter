@@ -55,6 +55,8 @@ test("createListing persists a listing row and maps it back", async () => {
     "https://anbieter.immobilie1.de/expose/demo",
     "https://anbieter.immobilie1.de/expose/demo"
   ]);
+  assert.equal(queries[0].values[6], "listing_created");
+  assert.deepEqual(queries[0].values[7], { sourceId: "immobilie1" });
   assert.equal(created.id, "listing-1");
   assert.equal(created.sourceId, "immobilie1");
   assert.equal(created.normalizedUrl, "https://anbieter.immobilie1.de/expose/demo");
@@ -64,6 +66,54 @@ test("createListing persists a listing row and maps it back", async () => {
   assert.equal(created.reviewStatus, "new");
   assert.equal(created.applicationStatus, "new");
   assert.equal(created.createdAt, "2026-06-06T10:00:00.000Z");
+});
+
+test("listTimelineEvents maps listing timeline rows", async () => {
+  const db: Queryable = {
+    async query() {
+      return {
+        rows: [
+          {
+            id: "event-1",
+            listing_id: "listing-1",
+            type: "listing_created",
+            message: "Listing created",
+            payload: { sourceId: "kleinanzeigen" },
+            created_at: new Date("2026-06-06T12:00:00.000Z")
+          },
+          {
+            id: "event-2",
+            listing_id: "listing-1",
+            type: "review_decision",
+            message: "Review decision: approved",
+            payload: { decision: "approved" },
+            created_at: new Date("2026-06-06T12:05:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+
+  assert.deepEqual(await repository.listTimelineEvents("listing-1"), [
+    {
+      id: "event-1",
+      listingId: "listing-1",
+      type: "listing_created",
+      message: "Listing created",
+      payload: { sourceId: "kleinanzeigen" },
+      createdAt: "2026-06-06T12:00:00.000Z"
+    },
+    {
+      id: "event-2",
+      listingId: "listing-1",
+      type: "review_decision",
+      message: "Review decision: approved",
+      payload: { decision: "approved" },
+      createdAt: "2026-06-06T12:05:00.000Z"
+    }
+  ]);
 });
 
 test("createListing returns the existing row when normalized URL already exists", async () => {

@@ -13,12 +13,19 @@ export const applicationStatuses = [
 ] as const;
 export const listingStatuses = ["new", "ignored", "duplicate", "error"] as const;
 export const contactMethods = ["form", "email", "external"] as const;
+export const timelineEventTypes = [
+  "listing_created",
+  "listing_extracted",
+  "letter_generated",
+  "review_decision"
+] as const;
 
 export type ReviewStatus = (typeof reviewStatuses)[number];
 export type ReviewDecision = (typeof reviewDecisions)[number];
 export type ApplicationStatus = (typeof applicationStatuses)[number];
 export type ListingStatus = (typeof listingStatuses)[number];
 export type ContactMethod = (typeof contactMethods)[number];
+export type TimelineEventType = (typeof timelineEventTypes)[number];
 
 export type SourceId = "kleinanzeigen" | "immobilie1" | "immowelt" | "immoscout24" | "manual";
 
@@ -57,6 +64,15 @@ export type ContactInfo = {
   phone?: string;
   email?: string;
   contactFormUrl?: string;
+};
+
+export type ListingTimelineEvent = {
+  id: string;
+  listingId: string;
+  type: TimelineEventType;
+  message: string;
+  payload?: Record<string, unknown>;
+  createdAt: string;
 };
 
 export type ScoredListingInput = {

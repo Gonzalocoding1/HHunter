@@ -33,3 +33,14 @@ create index if not exists listings_status_idx on listings (status);
 
 alter table listings add column if not exists application_draft text;
 alter table listings add column if not exists application_draft_generated_at timestamptz;
+
+create table if not exists listing_timeline_events (
+  id text primary key,
+  listing_id text not null references listings(id) on delete cascade,
+  type text not null,
+  message text not null,
+  payload jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists listing_timeline_events_listing_id_idx on listing_timeline_events (listing_id, created_at);

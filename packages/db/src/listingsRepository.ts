@@ -1,4 +1,4 @@
-import type { ContactInfo, Listing, SourceId } from "@homehunter/core";
+import type { ContactInfo, Listing, ListingTimelineEvent, SourceId } from "@homehunter/core";
 import type { ReviewDecision } from "@homehunter/core";
 
 export type Queryable = {
@@ -56,29 +56,75 @@ type ListingRow = {
   updated_at: Date | string;
 };
 
+type TimelineEventRow = {
+  id: string;
+  listing_id: string;
+  type: ListingTimelineEvent["type"];
+  message: string;
+  payload: Record<string, unknown> | null;
+  created_at: Date | string;
+};
+
 export function createListingsRepository(db: Queryable) {
   return {
     async createListing(input: CreateListingInput): Promise<Listing> {
       const id = crypto.randomUUID();
+      const timelineEventId = crypto.randomUUID();
       const normalizedUrl = normalizeUrl(input.sourceUrl);
       const result = await db.query(
-        `insert into listings (
+        `with inserted as (
+          insert into listings (
+            id,
+            source_id,
+            source_url,
+            normalized_url,
+            title,
+            raw_data,
+            review_status,
+            application_status
+          ) values ($1, $2, $3, $4, $5, $6, 'new', 'new')
+          on conflict (normalized_url) do nothing
+          returning *
+        ),
+        logged as (
+          insert into listing_timeline_events (id, listing_id, type, message, payload)
+          select $9, id, $7, 'Listing created', $8::jsonb
+          from inserted
+        )
+        select *
+        from inserted
+        union all
+        select *
+        from listings
+        where normalized_url = $4
+          and not exists (select 1 from inserted)
+        limit 1`,
+        [
           id,
-          source_id,
-          source_url,
-          normalized_url,
-          title,
-          raw_data,
-          review_status,
-          application_status
-        ) values ($1, $2, $3, $4, $5, $6, 'new', 'new')
-        on conflict (normalized_url) do update
-        set normalized_url = excluded.normalized_url
-        returning *`,
-        [id, input.sourceId, input.sourceUrl, normalizedUrl, input.title, input.rawData ?? { source: "manual" }]
+          input.sourceId,
+          input.sourceUrl,
+          normalizedUrl,
+          input.title,
+          input.rawData ?? { source: "manual" },
+          "listing_created",
+          { sourceId: input.sourceId },
+          timelineEventId
+        ]
       );
 
       return mapListingRow(result.rows[0] as ListingRow);
+    },
+
+    async listTimelineEvents(listingId: string): Promise<ListingTimelineEvent[]> {
+      const result = await db.query(
+        `select *
+        from listing_timeline_events
+        where listing_id = $1
+        order by created_at asc`,
+        [listingId]
+      );
+
+      return result.rows.map((row) => mapTimelineEventRow(row as TimelineEventRow));
     },
 
     async listListings(): Promise<Listing[]> {
@@ -101,6 +147,10 @@ export function createListingsRepository(db: Queryable) {
       );
 
       const row = result.rows[0];
+      if (row) {
+        await appendTimelineEvent(db, id, "review_decision", `Review decision: ${decision}`, { decision });
+      }
+
       return row ? mapListingRow(row as ListingRow) : null;
     },
 
@@ -117,6 +167,10 @@ export function createListingsRepository(db: Queryable) {
       );
 
       const row = result.rows[0];
+      if (row) {
+        await appendTimelineEvent(db, id, "letter_generated", "Application letter generated");
+      }
+
       return row ? mapListingRow(row as ListingRow) : null;
     },
 
@@ -182,8 +236,40 @@ export function createListingsRepository(db: Queryable) {
       );
 
       const row = result.rows[0];
+      if (row) {
+        await appendTimelineEvent(db, id, "listing_extracted", "Listing extracted", {
+          score: extraction.score,
+          scoreLabel: extraction.scoreLabel
+        });
+      }
+
       return row ? mapListingRow(row as ListingRow) : null;
     }
+  };
+}
+
+async function appendTimelineEvent(
+  db: Queryable,
+  listingId: string,
+  type: ListingTimelineEvent["type"],
+  message: string,
+  payload?: Record<string, unknown>
+): Promise<void> {
+  await db.query(
+    `insert into listing_timeline_events (id, listing_id, type, message, payload)
+    values ($1, $2, $3, $4, $5)`,
+    [crypto.randomUUID(), listingId, type, message, payload ?? null]
+  );
+}
+
+function mapTimelineEventRow(row: TimelineEventRow): ListingTimelineEvent {
+  return {
+    id: row.id,
+    listingId: row.listing_id,
+    type: row.type,
+    message: row.message,
+    ...(row.payload === null ? {} : { payload: row.payload }),
+    createdAt: toIsoString(row.created_at)
   };
 }
 
