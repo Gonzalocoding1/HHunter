@@ -42,7 +42,7 @@ Out of scope for today:
    If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL.
 
 4. `Score Relevance`
-   HomeHunter assigns an explainable score from `0` to `100` so the Bilt app can prioritize listings before review.
+   HomeHunter assigns an explainable score from `0` to `100` based on the configured search profile so the Bilt app can prioritize listings before review.
 
 5. `Generate Letter`
    OpenAI generates a German application letter tailored to the listing, the contact person and the user profile. The API key is read from `.env` as `OPENAI_API_KEY`.
@@ -158,10 +158,12 @@ Current endpoints for Bilt and future Bilt MCP integration:
 - `GET /listings`
 - `GET /listings/:id`
 - `GET /listings/:id/timeline`
+- `GET /search-profile`
 - `POST /listings`
 - `POST /listings/:id/extract`
 - `POST /listings/:id/generate-letter`
 - `POST /listings/:id/review`
+- `PUT /search-profile`
 
 Review payload:
 
@@ -209,6 +211,7 @@ Phase 2:
 - [x] Exact URL duplicate prevention
 - [ ] Fuzzy duplicate detection
 - [x] Relevance scoring
+- [x] User/search profile configuration
 - [x] Contact enrichment from listing text
 - [ ] Contact enrichment quality checks
 - [ ] Source-specific parsers

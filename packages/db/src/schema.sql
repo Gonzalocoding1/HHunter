@@ -44,3 +44,14 @@ create table if not exists listing_timeline_events (
 );
 
 create index if not exists listing_timeline_events_listing_id_idx on listing_timeline_events (listing_id, created_at);
+
+create table if not exists search_profiles (
+  id text primary key,
+  city text not null,
+  max_price_eur integer not null,
+  min_living_area_sqm integer not null,
+  min_rooms numeric not null,
+  preferred_equipment text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

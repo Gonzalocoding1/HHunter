@@ -6,6 +6,7 @@ export {
   type Queryable,
   type UpdateListingExtractionInput
 } from "./listingsRepository.ts";
+export { createSearchProfileRepository } from "./searchProfileRepository.ts";
 
 export function requireDatabaseUrl(): string {
   if (!databaseUrl) {

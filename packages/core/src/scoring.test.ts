@@ -37,3 +37,33 @@ test("scoreListing keeps weak listings low and records penalties", () => {
   assert.equal(result.scoreLabel, "Niedrige Prioritaet");
   assert.deepEqual(result.reasons, ["Preis ueber Budget", "Wohnflaeche zu klein", "Lage ausserhalb Koeln"]);
 });
+
+test("scoreListing uses a custom search profile", () => {
+  const result = scoreListing(
+    {
+      title: "Wohnung in Berlin",
+      location: "10115 Berlin Mitte",
+      priceEur: 1600,
+      rooms: 3,
+      livingAreaSqm: 75,
+      equipment: ["Einbauküche"]
+    },
+    {
+      city: "Berlin",
+      maxPriceEur: 1700,
+      minLivingAreaSqm: 70,
+      minRooms: 3,
+      preferredEquipment: ["Einbauküche"]
+    }
+  );
+
+  assert.equal(result.score, 100);
+  assert.equal(result.scoreLabel, "Top Match");
+  assert.deepEqual(result.reasons, [
+    "Preis liegt im Budget",
+    "Wohnflaeche passt",
+    "Zimmeranzahl passt",
+    "Lage passt zu Berlin",
+    "Ausstattung passt: Einbauküche"
+  ]);
+});

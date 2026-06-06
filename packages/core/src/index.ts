@@ -84,26 +84,35 @@ export type ScoredListingInput = {
   equipment?: string[];
 };
 
+export type SearchProfile = {
+  city: string;
+  maxPriceEur: number;
+  minLivingAreaSqm: number;
+  minRooms: number;
+  preferredEquipment: string[];
+};
+
 export type ListingScore = {
   score: number;
   scoreLabel: string;
   reasons: string[];
 };
 
-const defaultScoringProfile = {
+export const defaultSearchProfile: SearchProfile = {
+  city: "Koeln",
   maxPriceEur: 1400,
   minLivingAreaSqm: 45,
   minRooms: 2,
-  preferredLocation: "koeln",
-  preferredEquipment: ["balkon"]
+  preferredEquipment: ["Balkon"]
 };
 
-export function scoreListing(listing: ScoredListingInput): ListingScore {
+export function scoreListing(listing: ScoredListingInput, profile: SearchProfile = defaultSearchProfile): ListingScore {
   let score = 10;
   const reasons: string[] = [];
+  const normalizedCity = normalizeScoringText(profile.city);
 
   if (listing.priceEur !== undefined) {
-    if (listing.priceEur <= defaultScoringProfile.maxPriceEur) {
+    if (listing.priceEur <= profile.maxPriceEur) {
       score += 25;
       reasons.push("Preis liegt im Budget");
     } else {
@@ -112,7 +121,7 @@ export function scoreListing(listing: ScoredListingInput): ListingScore {
   }
 
   if (listing.livingAreaSqm !== undefined) {
-    if (listing.livingAreaSqm >= defaultScoringProfile.minLivingAreaSqm) {
+    if (listing.livingAreaSqm >= profile.minLivingAreaSqm) {
       score += 20;
       reasons.push("Wohnflaeche passt");
     } else {
@@ -120,22 +129,23 @@ export function scoreListing(listing: ScoredListingInput): ListingScore {
     }
   }
 
-  if (listing.rooms !== undefined && listing.rooms >= defaultScoringProfile.minRooms) {
+  if (listing.rooms !== undefined && listing.rooms >= profile.minRooms) {
     score += 15;
     reasons.push("Zimmeranzahl passt");
   }
 
   if (listing.location !== undefined) {
-    if (normalizeScoringText(listing.location).includes(defaultScoringProfile.preferredLocation)) {
+    if (normalizeScoringText(listing.location).includes(normalizedCity)) {
       score += 20;
-      reasons.push("Lage passt zu Koeln");
+      reasons.push(`Lage passt zu ${profile.city}`);
     } else {
-      reasons.push("Lage ausserhalb Koeln");
+      reasons.push(`Lage ausserhalb ${profile.city}`);
     }
   }
 
+  const preferredEquipment = profile.preferredEquipment.map((item) => normalizeScoringText(item));
   const matchingEquipment = (listing.equipment ?? []).filter((item) =>
-    defaultScoringProfile.preferredEquipment.includes(normalizeScoringText(item))
+    preferredEquipment.includes(normalizeScoringText(item))
   );
 
   if (matchingEquipment.length > 0) {

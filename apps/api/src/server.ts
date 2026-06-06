@@ -1,14 +1,21 @@
 import Fastify from "fastify";
 import {
   applicationStatuses,
+  defaultSearchProfile,
   type Listing,
   type ListingTimelineEvent,
   reviewDecisions,
   type ReviewDecision,
   reviewStatuses,
+  type SearchProfile,
   scoreListing
 } from "@homehunter/core";
-import { createListingsRepository, type CreateListingInput, type UpdateListingExtractionInput } from "@homehunter/db";
+import {
+  createListingsRepository,
+  createSearchProfileRepository,
+  type CreateListingInput,
+  type UpdateListingExtractionInput
+} from "@homehunter/db";
 import { detectSourceId } from "@homehunter/sources";
 import { extractListing } from "@homehunter/worker/extractListing";
 import { fetchListingPage } from "@homehunter/worker/fetchListingPage";
@@ -26,6 +33,14 @@ type ReviewListingPayload = {
   decision?: unknown;
 };
 
+type SearchProfilePayload = {
+  city?: unknown;
+  maxPriceEur?: unknown;
+  minLivingAreaSqm?: unknown;
+  minRooms?: unknown;
+  preferredEquipment?: unknown;
+};
+
 export type ListingsRepository = {
   createListing: (input: CreateListingInput) => Promise<Listing>;
   listListings: () => Promise<Listing[]>;
@@ -36,11 +51,17 @@ export type ListingsRepository = {
   updateListingExtraction: (id: string, extraction: UpdateListingExtractionInput) => Promise<Listing | null>;
 };
 
+export type SearchProfileRepository = {
+  getSearchProfile: () => Promise<SearchProfile | null>;
+  saveSearchProfile: (profile: SearchProfile) => Promise<SearchProfile>;
+};
+
 export type LetterGenerator = (listing: Listing) => Promise<string>;
 export type ListingExtractor = (listing: Listing) => Promise<UpdateListingExtractionInput>;
 
 export type BuildApiOptions = {
   listingsRepository?: ListingsRepository;
+  searchProfileRepository?: SearchProfileRepository;
   letterGenerator?: LetterGenerator;
   listingExtractor?: ListingExtractor;
 };
@@ -48,6 +69,7 @@ export type BuildApiOptions = {
 export function buildApi(options: BuildApiOptions = {}) {
   const server = Fastify({ logger: true });
   const listingsRepository = options.listingsRepository ?? createDefaultListingsRepository();
+  const searchProfileRepository = options.searchProfileRepository ?? createDefaultSearchProfileRepository();
   const letterGenerator = options.letterGenerator ?? createOpenAiLetterGenerator();
   const listingExtractor = options.listingExtractor ?? createPlaywrightListingExtractor();
 
@@ -78,6 +100,21 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     return listingsRepository.listTimelineEvents(request.params.id);
+  });
+
+  server.get("/search-profile", async () => (await searchProfileRepository.getSearchProfile()) ?? defaultSearchProfile);
+
+  server.put<{ Body: SearchProfilePayload }>("/search-profile", async (request, reply) => {
+    const profile = parseSearchProfile(request.body);
+
+    if (!profile) {
+      return reply.code(400).send({
+        error:
+          "search profile must include city, maxPriceEur, minLivingAreaSqm, minRooms and preferredEquipment"
+      });
+    }
+
+    return searchProfileRepository.saveSearchProfile(profile);
   });
 
   server.post<{ Body: CreateListingPayload }>("/listings", async (request, reply) => {
@@ -145,7 +182,8 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     const extraction = await listingExtractor(listing);
-    const scoring = scoreListing(extraction);
+    const searchProfile = (await searchProfileRepository.getSearchProfile()) ?? defaultSearchProfile;
+    const scoring = scoreListing(extraction, searchProfile);
     const updated = await listingsRepository.updateListingExtraction(request.params.id, {
       ...extraction,
       score: scoring.score,
@@ -180,6 +218,66 @@ function createDefaultListingsRepository(): ListingsRepository {
 
   const pool = new pg.Pool({ connectionString });
   return createListingsRepository(pool);
+}
+
+function createDefaultSearchProfileRepository(): SearchProfileRepository {
+  let repository: ReturnType<typeof createSearchProfileRepository> | null = null;
+
+  function getRepository() {
+    if (repository) {
+      return repository;
+    }
+
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      return null;
+    }
+
+    const pool = new pg.Pool({ connectionString });
+    repository = createSearchProfileRepository(pool);
+    return repository;
+  }
+
+  return {
+    async getSearchProfile() {
+      return (await getRepository()?.getSearchProfile()) ?? defaultSearchProfile;
+    },
+
+    async saveSearchProfile(profile) {
+      const persistentRepository = getRepository();
+
+      if (!persistentRepository) {
+        throw new Error("DATABASE_URL is required to save search profile");
+      }
+
+      return persistentRepository.saveSearchProfile(profile);
+    }
+  };
+}
+
+function parseSearchProfile(payload: SearchProfilePayload | undefined): SearchProfile | null {
+  if (!payload) {
+    return null;
+  }
+
+  if (
+    typeof payload.city !== "string" ||
+    typeof payload.maxPriceEur !== "number" ||
+    typeof payload.minLivingAreaSqm !== "number" ||
+    typeof payload.minRooms !== "number" ||
+    !Array.isArray(payload.preferredEquipment) ||
+    !payload.preferredEquipment.every((item) => typeof item === "string")
+  ) {
+    return null;
+  }
+
+  return {
+    city: payload.city,
+    maxPriceEur: payload.maxPriceEur,
+    minLivingAreaSqm: payload.minLivingAreaSqm,
+    minRooms: payload.minRooms,
+    preferredEquipment: payload.preferredEquipment
+  };
 }
 
 function createOpenAiLetterGenerator(): LetterGenerator {

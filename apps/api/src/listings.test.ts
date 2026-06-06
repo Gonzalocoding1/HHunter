@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Listing, ListingTimelineEvent } from "@homehunter/core";
-import { buildApi, type ListingsRepository } from "./server.ts";
+import type { Listing, ListingTimelineEvent, SearchProfile } from "@homehunter/core";
+import { buildApi, type ListingsRepository, type SearchProfileRepository } from "./server.ts";
 
 test("POST /listings stores a manually submitted immobilie1 URL", async () => {
   const listingsRepository = createMemoryListingsRepository();
@@ -138,6 +138,55 @@ test("GET /listings/:id/timeline returns audit events for a listing", async () =
   ]);
 });
 
+test("GET /search-profile returns the current search profile", async () => {
+  const app = buildApi({
+    listingsRepository: createMemoryListingsRepository(),
+    searchProfileRepository: createMemorySearchProfileRepository()
+  });
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/search-profile"
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), {
+    city: "Koeln",
+    maxPriceEur: 1400,
+    minLivingAreaSqm: 45,
+    minRooms: 2,
+    preferredEquipment: ["Balkon"]
+  });
+});
+
+test("PUT /search-profile stores a new search profile", async () => {
+  const app = buildApi({
+    listingsRepository: createMemoryListingsRepository(),
+    searchProfileRepository: createMemorySearchProfileRepository()
+  });
+
+  const response = await app.inject({
+    method: "PUT",
+    url: "/search-profile",
+    payload: {
+      city: "Berlin",
+      maxPriceEur: 1700,
+      minLivingAreaSqm: 70,
+      minRooms: 3,
+      preferredEquipment: ["Einbauküche"]
+    }
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), {
+    city: "Berlin",
+    maxPriceEur: 1700,
+    minLivingAreaSqm: 70,
+    minRooms: 3,
+    preferredEquipment: ["Einbauküche"]
+  });
+});
+
 test("POST /listings/:id/review stores an approval decision", async () => {
   const listingsRepository = createMemoryListingsRepository();
   const app = buildApi({ listingsRepository });
@@ -211,14 +260,21 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
   const listingsRepository = createMemoryListingsRepository();
   const app = buildApi({
     listingsRepository,
+    searchProfileRepository: createMemorySearchProfileRepository({
+      city: "Berlin",
+      maxPriceEur: 1700,
+      minLivingAreaSqm: 70,
+      minRooms: 3,
+      preferredEquipment: ["Einbauküche"]
+    }),
     listingExtractor: async (listing) => ({
-      title: "Helle 2-Zimmer-Wohnung",
-      location: "50667 Koeln",
-      priceEur: 1250,
-      rooms: 2,
-      livingAreaSqm: 61,
+      title: "Helle 3-Zimmer-Wohnung",
+      location: "10115 Berlin",
+      priceEur: 1600,
+      rooms: 3,
+      livingAreaSqm: 75,
       floor: "3",
-      equipment: ["Balkon", "Keller"],
+      equipment: ["Einbauküche", "Keller"],
       contact: {
         name: "Maria Becker",
         company: "Muster Immobilien GmbH",
@@ -246,13 +302,13 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
   });
 
   assert.equal(response.statusCode, 200);
-  assert.equal(response.json().title, "Helle 2-Zimmer-Wohnung");
-  assert.equal(response.json().location, "50667 Koeln");
-  assert.equal(response.json().priceEur, 1250);
-  assert.equal(response.json().rooms, 2);
-  assert.equal(response.json().livingAreaSqm, 61);
+  assert.equal(response.json().title, "Helle 3-Zimmer-Wohnung");
+  assert.equal(response.json().location, "10115 Berlin");
+  assert.equal(response.json().priceEur, 1600);
+  assert.equal(response.json().rooms, 3);
+  assert.equal(response.json().livingAreaSqm, 75);
   assert.equal(response.json().floor, "3");
-  assert.deepEqual(response.json().equipment, ["Balkon", "Keller"]);
+  assert.deepEqual(response.json().equipment, ["Einbauküche", "Keller"]);
   assert.equal(response.json().score, 100);
   assert.equal(response.json().scoreLabel, "Top Match");
   assert.deepEqual(response.json().rawData.scoring, {
@@ -262,8 +318,8 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
       "Preis liegt im Budget",
       "Wohnflaeche passt",
       "Zimmeranzahl passt",
-      "Lage passt zu Koeln",
-      "Ausstattung passt: Balkon"
+      "Lage passt zu Berlin",
+      "Ausstattung passt: Einbauküche"
     ]
   });
   assert.equal(response.json().contactMethod, "email");
@@ -457,4 +513,25 @@ function normalizeMemoryUrl(sourceUrl: string): string {
   url.searchParams.sort();
 
   return url.toString();
+}
+
+function createMemorySearchProfileRepository(initialProfile?: SearchProfile): SearchProfileRepository {
+  let profile: SearchProfile = initialProfile ?? {
+    city: "Koeln",
+    maxPriceEur: 1400,
+    minLivingAreaSqm: 45,
+    minRooms: 2,
+    preferredEquipment: ["Balkon"]
+  };
+
+  return {
+    async getSearchProfile() {
+      return profile;
+    },
+
+    async saveSearchProfile(nextProfile) {
+      profile = nextProfile;
+      return profile;
+    }
+  };
 }
