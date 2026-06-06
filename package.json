@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "rentmatch:web": "npm --prefix rentmatch_app run web",
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
     "test:core": "tsx --test packages/core/src/*.test.ts",
@@ -22,5 +23,8 @@
     "@types/node": "^22.15.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "expo": "^56.0.9"
   }
 }
