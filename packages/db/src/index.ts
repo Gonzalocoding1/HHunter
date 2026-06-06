@@ -7,6 +7,7 @@ export {
   type UpdateListingExtractionInput
 } from "./listingsRepository.ts";
 export { createSearchProfileRepository } from "./searchProfileRepository.ts";
+export { createApplicantProfileRepository } from "./applicantProfileRepository.ts";
 
 export function requireDatabaseUrl(): string {
   if (!databaseUrl) {

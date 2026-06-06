@@ -1,5 +1,7 @@
 const result = document.querySelector("#capture-result");
 const form = document.querySelector("#listing-form");
+const applicantProfileForm = document.querySelector("#applicant-profile-form");
+const applicantProfileResult = document.querySelector("#applicant-profile-result");
 const latestList = document.querySelector("#latest-list");
 const listingTable = document.querySelector("#listing-table");
 const applicationList = document.querySelector("#application-list");
@@ -33,6 +35,7 @@ document.addEventListener("click", async (event) => {
 
 renderPortals();
 void loadListings();
+void loadApplicantProfile();
 
 function openScreen(screen) {
   document.querySelectorAll("[data-screen]").forEach((section) => {
@@ -77,6 +80,95 @@ form.addEventListener("submit", async (event) => {
     result.textContent = "API nicht erreichbar.";
   }
 });
+
+applicantProfileForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  applicantProfileResult.textContent = "Profil wird gespeichert...";
+
+  try {
+    const response = await fetch("/api/applicant-profile", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(readApplicantProfileForm())
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      applicantProfileResult.style.color = "hsl(var(--destructive))";
+      applicantProfileResult.textContent = payload.error ?? "Profil konnte nicht gespeichert werden.";
+      return;
+    }
+
+    fillApplicantProfileForm(payload);
+    applicantProfileResult.style.color = "hsl(var(--primary))";
+    applicantProfileResult.textContent = "Profil gespeichert. Neue Anschreiben nutzen diese Angaben.";
+  } catch {
+    applicantProfileResult.style.color = "hsl(var(--destructive))";
+    applicantProfileResult.textContent = "API nicht erreichbar.";
+  }
+});
+
+async function loadApplicantProfile() {
+  try {
+    const response = await fetch("/api/applicant-profile");
+    if (!response.ok) return;
+    fillApplicantProfileForm(await response.json());
+  } catch {
+    // The listing flow still works without a stored applicant profile.
+  }
+}
+
+function readApplicantProfileForm() {
+  const data = new FormData(applicantProfileForm);
+  return {
+    firstName: stringValue(data, "firstName"),
+    lastName: stringValue(data, "lastName"),
+    contactEmail: stringValue(data, "contactEmail"),
+    phone: stringValue(data, "phone"),
+    salutation: stringValue(data, "salutation"),
+    age: numberValue(data, "age"),
+    budgetEur: numberValue(data, "budgetEur"),
+    occupation: stringValue(data, "occupation"),
+    education: stringValue(data, "education"),
+    employer: stringValue(data, "employer"),
+    netIncomeEur: numberValue(data, "netIncomeEur"),
+    guarantorAvailable: data.get("guarantorAvailable") === "on",
+    householdSize: numberValue(data, "householdSize"),
+    pets: stringValue(data, "pets"),
+    moveInDate: stringValue(data, "moveInDate"),
+    currentHousingSituation: stringValue(data, "currentHousingSituation"),
+    moveReason: stringValue(data, "moveReason"),
+    personalDescription: stringValue(data, "personalDescription")
+  };
+}
+
+function fillApplicantProfileForm(profile) {
+  for (const [key, value] of Object.entries(profile ?? {})) {
+    const field = applicantProfileForm.elements.namedItem(key);
+    if (!field) continue;
+    if (field instanceof HTMLInputElement && field.type === "checkbox") {
+      field.checked = Boolean(value);
+    } else if (
+      field instanceof HTMLInputElement ||
+      field instanceof HTMLTextAreaElement ||
+      field instanceof HTMLSelectElement
+    ) {
+      field.value = value ?? "";
+    }
+  }
+}
+
+function stringValue(data, key) {
+  const value = data.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function numberValue(data, key) {
+  const value = data.get(key);
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
 
 async function loadListings() {
   try {

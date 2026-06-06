@@ -162,21 +162,22 @@
         <section id="settings" class="view-section two-col" data-screen="settings" hidden>
           <article class="card">
             <header class="card-header"><h2>KI-Profil</h2></header>
-            <form class="form-grid">
-              <div class="double"><label>Vorname<input /></label><label>Nachname<input /></label></div>
-              <div class="double"><label>Kontakt-E-Mail<input /></label><label>Telefon<input /></label></div>
-              <div class="double"><label>Anrede<select><option>Bitte wählen</option><option>Herr</option><option>Frau</option><option>Divers</option></select></label><label>Alter<input /></label></div>
-              <div class="double"><label>Budget<input /></label><label>Nettoeinkommen<input /></label></div>
-              <label>Beruf<input /></label>
-              <label>Studium / Ausbildung<input /></label>
-              <label>Arbeitgeber<input /></label>
-              <label class="check-row"><input type="checkbox" /> Bürgschaft vorhanden</label>
-              <div class="double"><label>Haushaltsgröße<input /></label><label>Haustiere<input /></label></div>
-              <label>Einzugsdatum<input type="date" /></label>
-              <label>Aktuelle Wohnsituation<textarea></textarea></label>
-              <label>Umzugsgrund<textarea></textarea></label>
-              <label>Persönliche Beschreibung<textarea></textarea></label>
-              <button class="btn primary" type="button">Profil speichern</button>
+            <form class="form-grid" id="applicant-profile-form">
+              <div class="double"><label>Vorname<input name="firstName" /></label><label>Nachname<input name="lastName" /></label></div>
+              <div class="double"><label>Kontakt-E-Mail<input name="contactEmail" type="email" /></label><label>Telefon<input name="phone" /></label></div>
+              <div class="double"><label>Anrede<select name="salutation"><option value="">Bitte wählen</option><option>Herr</option><option>Frau</option><option>Divers</option></select></label><label>Alter<input name="age" type="number" /></label></div>
+              <div class="double"><label>Budget<input name="budgetEur" type="number" /></label><label>Nettoeinkommen<input name="netIncomeEur" type="number" /></label></div>
+              <label>Beruf<input name="occupation" /></label>
+              <label>Studium / Ausbildung<input name="education" /></label>
+              <label>Arbeitgeber<input name="employer" /></label>
+              <label class="check-row"><input name="guarantorAvailable" type="checkbox" /> Bürgschaft vorhanden</label>
+              <div class="double"><label>Haushaltsgröße<input name="householdSize" type="number" /></label><label>Haustiere<input name="pets" /></label></div>
+              <label>Einzugsdatum<input name="moveInDate" type="date" /></label>
+              <label>Aktuelle Wohnsituation<textarea name="currentHousingSituation"></textarea></label>
+              <label>Umzugsgrund<textarea name="moveReason"></textarea></label>
+              <label>Persönliche Beschreibung<textarea name="personalDescription"></textarea></label>
+              <button class="btn primary" type="submit">Profil speichern</button>
+              <output id="applicant-profile-result" class="form-result">Diese Daten werden beim Anschreiben berücksichtigt.</output>
             </form>
           </article>
           <article class="card">

@@ -97,6 +97,27 @@ export type SearchProfile = {
   preferredEquipment: string[];
 };
 
+export type ApplicantProfile = {
+  firstName?: string;
+  lastName?: string;
+  contactEmail?: string;
+  phone?: string;
+  salutation?: string;
+  age?: number;
+  budgetEur?: number;
+  occupation?: string;
+  education?: string;
+  employer?: string;
+  netIncomeEur?: number;
+  guarantorAvailable?: boolean;
+  householdSize?: number;
+  pets?: string;
+  moveInDate?: string;
+  currentHousingSituation?: string;
+  moveReason?: string;
+  personalDescription?: string;
+};
+
 export type ListingScore = {
   score: number;
   scoreLabel: string;

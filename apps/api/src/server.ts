@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import {
+  type ApplicantProfile,
   applicationStatuses,
   defaultSearchProfile,
   type Listing,
@@ -11,6 +12,7 @@ import {
   scoreListing
 } from "@homehunter/core";
 import {
+  createApplicantProfileRepository,
   createListingsRepository,
   createSearchProfileRepository,
   type CreateListingInput,
@@ -41,6 +43,8 @@ type SearchProfilePayload = {
   preferredEquipment?: unknown;
 };
 
+type ApplicantProfilePayload = Record<string, unknown>;
+
 export type ListingsRepository = {
   createListing: (input: CreateListingInput) => Promise<Listing>;
   listListings: () => Promise<Listing[]>;
@@ -56,12 +60,18 @@ export type SearchProfileRepository = {
   saveSearchProfile: (profile: SearchProfile) => Promise<SearchProfile>;
 };
 
-export type LetterGenerator = (listing: Listing) => Promise<string>;
+export type ApplicantProfileRepository = {
+  getApplicantProfile: () => Promise<ApplicantProfile>;
+  saveApplicantProfile: (profile: ApplicantProfile) => Promise<ApplicantProfile>;
+};
+
+export type LetterGenerator = (listing: Listing, applicantProfile: ApplicantProfile) => Promise<string>;
 export type ListingExtractor = (listing: Listing) => Promise<UpdateListingExtractionInput>;
 
 export type BuildApiOptions = {
   listingsRepository?: ListingsRepository;
   searchProfileRepository?: SearchProfileRepository;
+  applicantProfileRepository?: ApplicantProfileRepository;
   letterGenerator?: LetterGenerator;
   listingExtractor?: ListingExtractor;
   autoExtractOnCreate?: boolean;
@@ -71,6 +81,8 @@ export function buildApi(options: BuildApiOptions = {}) {
   const server = Fastify({ logger: true });
   const listingsRepository = options.listingsRepository ?? createDefaultListingsRepository();
   const searchProfileRepository = options.searchProfileRepository ?? createDefaultSearchProfileRepository();
+  const applicantProfileRepository =
+    options.applicantProfileRepository ?? createDefaultApplicantProfileRepository();
   const letterGenerator = options.letterGenerator ?? createOpenAiLetterGenerator();
   const listingExtractor = options.listingExtractor ?? createPlaywrightListingExtractor();
   const autoExtractOnCreate = options.autoExtractOnCreate ?? options.listingsRepository === undefined;
@@ -106,6 +118,8 @@ export function buildApi(options: BuildApiOptions = {}) {
 
   server.get("/search-profile", async () => (await searchProfileRepository.getSearchProfile()) ?? defaultSearchProfile);
 
+  server.get("/applicant-profile", async () => applicantProfileRepository.getApplicantProfile());
+
   server.put<{ Body: SearchProfilePayload }>("/search-profile", async (request, reply) => {
     const profile = parseSearchProfile(request.body);
 
@@ -118,6 +132,10 @@ export function buildApi(options: BuildApiOptions = {}) {
 
     return searchProfileRepository.saveSearchProfile(profile);
   });
+
+  server.put<{ Body: ApplicantProfilePayload }>("/applicant-profile", async (request) =>
+    applicantProfileRepository.saveApplicantProfile(parseApplicantProfile(request.body))
+  );
 
   server.post<{ Body: CreateListingPayload }>("/listings", async (request, reply) => {
     const sourceUrl = parseSourceUrl(request.body?.sourceUrl);
@@ -189,14 +207,15 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     try {
-      const draft = await letterGenerator(listing);
-    const updated = await listingsRepository.saveApplicationDraft(request.params.id, draft);
+      const applicantProfile = await applicantProfileRepository.getApplicantProfile();
+      const draft = await letterGenerator(listing, applicantProfile);
+      const updated = await listingsRepository.saveApplicationDraft(request.params.id, draft);
 
-    if (!updated) {
-      return reply.code(404).send({ error: "listing not found" });
-    }
+      if (!updated) {
+        return reply.code(404).send({ error: "listing not found" });
+      }
 
-    return updated;
+      return updated;
     } catch (error) {
       request.log.error({ error, listingId: listing.id }, "letter generation failed");
       return reply.code(502).send({
@@ -230,6 +249,41 @@ export function buildApi(options: BuildApiOptions = {}) {
   });
 
   return server;
+}
+
+function createDefaultApplicantProfileRepository(): ApplicantProfileRepository {
+  let repository: ReturnType<typeof createApplicantProfileRepository> | null = null;
+
+  function getRepository() {
+    if (repository) {
+      return repository;
+    }
+
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      return null;
+    }
+
+    const pool = new pg.Pool({ connectionString });
+    repository = createApplicantProfileRepository(pool);
+    return repository;
+  }
+
+  return {
+    async getApplicantProfile() {
+      return (await getRepository()?.getApplicantProfile()) ?? {};
+    },
+
+    async saveApplicantProfile(profile) {
+      const persistentRepository = getRepository();
+
+      if (!persistentRepository) {
+        return profile;
+      }
+
+      return persistentRepository.saveApplicantProfile(profile);
+    }
+  };
 }
 
 function parseReviewDecision(value: unknown): ReviewDecision | null {
@@ -311,8 +365,57 @@ function parseSearchProfile(payload: SearchProfilePayload | undefined): SearchPr
   };
 }
 
+function parseApplicantProfile(payload: ApplicantProfilePayload | undefined): ApplicantProfile {
+  const profile: ApplicantProfile = {};
+  if (!payload || typeof payload !== "object") {
+    return profile;
+  }
+
+  copyString(payload, profile, "firstName");
+  copyString(payload, profile, "lastName");
+  copyString(payload, profile, "contactEmail");
+  copyString(payload, profile, "phone");
+  copyString(payload, profile, "salutation");
+  copyNumber(payload, profile, "age");
+  copyNumber(payload, profile, "budgetEur");
+  copyString(payload, profile, "occupation");
+  copyString(payload, profile, "education");
+  copyString(payload, profile, "employer");
+  copyNumber(payload, profile, "netIncomeEur");
+  copyBoolean(payload, profile, "guarantorAvailable");
+  copyNumber(payload, profile, "householdSize");
+  copyString(payload, profile, "pets");
+  copyString(payload, profile, "moveInDate");
+  copyString(payload, profile, "currentHousingSituation");
+  copyString(payload, profile, "moveReason");
+  copyString(payload, profile, "personalDescription");
+
+  return profile;
+}
+
+function copyString(source: ApplicantProfilePayload, target: ApplicantProfile, key: keyof ApplicantProfile) {
+  const value = source[key];
+  if (typeof value === "string" && value.trim()) {
+    Object.assign(target, { [key]: value.trim() });
+  }
+}
+
+function copyNumber(source: ApplicantProfilePayload, target: ApplicantProfile, key: keyof ApplicantProfile) {
+  const value = source[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    Object.assign(target, { [key]: value });
+  }
+}
+
+function copyBoolean(source: ApplicantProfilePayload, target: ApplicantProfile, key: keyof ApplicantProfile) {
+  const value = source[key];
+  if (typeof value === "boolean") {
+    Object.assign(target, { [key]: value });
+  }
+}
+
 function createOpenAiLetterGenerator(): LetterGenerator {
-  return async (listing) => {
+  return async (listing, applicantProfile) => {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
@@ -335,7 +438,7 @@ function createOpenAiLetterGenerator(): LetterGenerator {
           },
           {
             role: "user",
-            content: buildLetterPrompt(listing)
+            content: buildLetterPrompt(listing, applicantProfile)
           }
         ]
       })
@@ -414,12 +517,13 @@ function createPlaywrightListingExtractor(): ListingExtractor {
   };
 }
 
-function buildLetterPrompt(listing: Listing): string {
+function buildLetterPrompt(listing: Listing, applicantProfile: ApplicantProfile): string {
   return [
     "Erstelle ein kurzes Anschreiben fuer diese Wohnung.",
     "Der Text soll mit einer passenden deutschen Anrede beginnen und mit einer neutralen Grussformel enden.",
-    "Nutze nur die vorhandenen Inseratsdaten.",
+    "Nutze nur die vorhandenen Inserats- und Bewerberdaten. Erfinde keine fehlenden Angaben.",
     "",
+    "Inserat:",
     `Titel: ${listing.title}`,
     listing.location ? `Lage: ${listing.location}` : null,
     listing.priceEur ? `Preis: ${listing.priceEur} EUR` : null,
@@ -429,7 +533,32 @@ function buildLetterPrompt(listing: Listing): string {
     listing.equipment?.length ? `Ausstattung: ${listing.equipment.join(", ")}` : null,
     listing.contact?.name ? `Kontaktperson: ${listing.contact.name}` : null,
     listing.contact?.company ? `Firma: ${listing.contact.company}` : null,
-    `Quelle: ${listing.sourceUrl}`
+    `Quelle: ${listing.sourceUrl}`,
+    "",
+    "Bewerberprofil:",
+    applicantProfile.firstName || applicantProfile.lastName
+      ? `Name: ${[applicantProfile.firstName, applicantProfile.lastName].filter(Boolean).join(" ")}`
+      : null,
+    applicantProfile.salutation ? `Anrede: ${applicantProfile.salutation}` : null,
+    applicantProfile.age ? `Alter: ${applicantProfile.age}` : null,
+    applicantProfile.occupation ? `Beruf: ${applicantProfile.occupation}` : null,
+    applicantProfile.education ? `Studium/Ausbildung: ${applicantProfile.education}` : null,
+    applicantProfile.employer ? `Arbeitgeber: ${applicantProfile.employer}` : null,
+    applicantProfile.netIncomeEur ? `Nettoeinkommen: ${applicantProfile.netIncomeEur} EUR` : null,
+    applicantProfile.budgetEur ? `Budget: ${applicantProfile.budgetEur} EUR` : null,
+    applicantProfile.guarantorAvailable ? "Buergschaft vorhanden: ja" : null,
+    applicantProfile.householdSize ? `Haushaltsgroesse: ${applicantProfile.householdSize}` : null,
+    applicantProfile.pets ? `Haustiere: ${applicantProfile.pets}` : null,
+    applicantProfile.moveInDate ? `Einzugsdatum: ${applicantProfile.moveInDate}` : null,
+    applicantProfile.currentHousingSituation
+      ? `Aktuelle Wohnsituation: ${applicantProfile.currentHousingSituation}`
+      : null,
+    applicantProfile.moveReason ? `Umzugsgrund: ${applicantProfile.moveReason}` : null,
+    applicantProfile.personalDescription
+      ? `Persoenliche Beschreibung: ${applicantProfile.personalDescription}`
+      : null,
+    applicantProfile.contactEmail ? `Kontakt-E-Mail: ${applicantProfile.contactEmail}` : null,
+    applicantProfile.phone ? `Telefon: ${applicantProfile.phone}` : null
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
