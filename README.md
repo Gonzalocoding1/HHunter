@@ -18,7 +18,7 @@ Today we optimize for:
 - Codespaces-ready onboarding
 - Playwright source checks for portals that currently work
 - PostgreSQL as the persistence layer
-- API contracts that the Bilt app can use
+- API contracts that the built-in web/mobile app shell can use
 - a disabled-by-default worker scheduler for later automatic checks
 - a strict approval boundary before anything is marked ready to send
 
@@ -45,13 +45,13 @@ Out of scope for today:
    If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL. Portal support emails, invalid phone placeholders and call-to-action contact labels are ignored.
 
 4. `Score Relevance`
-   HomeHunter assigns an explainable score from `0` to `100` based on the configured search profile so the Bilt app can prioritize listings before review.
+   HomeHunter assigns an explainable score from `0` to `100` based on the configured search profile so the app can prioritize listings before review.
 
 5. `Generate Letter`
    OpenAI generates a German application letter tailored to the listing, the contact person and the user profile. The API key is read from `.env` as `OPENAI_API_KEY`.
 
 6. `Review`
-   The Bilt mobile app shows the listing, extracted data, contact info and generated letter for user review.
+   The HomeHunter app shows the listing, extracted data, contact info and generated letter for user review.
 
 7. `Approve`
    The user explicitly approves or rejects the prepared application. No send action happens before approval.
@@ -69,9 +69,9 @@ Direct Playwright works:
 - `kleinanzeigen.de`
 - `immobilie1.de`
 
-Blocked or unreliable:
+Skipped or unreliable:
 
-- `immowelt.de`: direct Playwright receives a CAPTCHA frame. ScraperAPI works generally, but immowelt failed without `ultra_premium=true`.
+- `immowelt.de`: skipped for now by product decision.
 - `immobilienscout24.de`: ScraperAPI works for the homepage, but the search page failed without a stronger ScraperAPI mode.
 
 ## Repository Layout
@@ -79,8 +79,9 @@ Blocked or unreliable:
 ```text
 apps/
   api/       Fastify API for mobile app and worker controls
+  web/       HomeHunter app shell for desktop and mobile web
   worker/    Playwright fetchers, parsers and later scheduled jobs
-  mobile/    Bilt app briefing and API contract entrypoint
+  mobile/    Legacy mobile briefing docs, no longer the primary app path
 packages/
   core/      shared domain types and workflow statuses
   db/        database connection helpers and schema boundary
@@ -94,7 +95,7 @@ Ownership guidance for co-development:
 - Scraping and parsing work should stay in `apps/worker` and `packages/sources`.
 - Shared workflow types belong in `packages/core`.
 - Database access belongs in `packages/db`.
-- Bilt-facing docs and prompts belong in `apps/mobile`.
+- App-facing screens belong in `apps/web`; legacy mobile notes stay in `apps/mobile`.
 
 ## Setup
 
@@ -164,7 +165,7 @@ In this environment, Playwright may need to run outside the default sandbox for 
 
 ## API Contract
 
-Current endpoints for Bilt and future Bilt MCP integration:
+Current endpoints for the HomeHunter app:
 
 - `GET /health`
 - `GET /listings`
@@ -214,7 +215,7 @@ Phase 1:
 - [x] Minimal listing extraction
 - [x] API-triggered listing extraction
 - [x] PostgreSQL persistence
-- [x] Bilt app reads listings and submits review decisions
+- [x] HomeHunter app reads listings and submits review decisions
 - [x] OpenAI-generated letter draft
 - [x] Approved listings become `ready_to_send`
 

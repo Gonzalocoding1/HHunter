@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "rentmatch:web": "npm --prefix rentmatch_app run web",
+    "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
     "test:core": "tsx --test packages/core/src/*.test.ts",

@@ -1,6 +1,6 @@
-# HomeHunter Bilt App
+# HomeHunter Mobile Notes
 
-Bilt is the review and approval app surface for HomeHunter.
+The active app shell is built in `apps/web` and is designed mobile-first with a bottom toolbar.
 
 This app should connect to the Codespace API and provide the mobile workflow:
 
@@ -48,8 +48,8 @@ Allowed decisions:
 - `rejected`: user does not want this listing.
 - `reviewed`: user has reviewed it but has not approved it yet.
 
-The later Bilt MCP integration should call these same API routes instead of introducing app-only state.
+Future native/mobile work should call these same API routes instead of introducing app-only state.
 
 ## Scheduler Boundary
 
-The worker has a disabled-by-default scheduler for later automatic listing checks. The Bilt app should still treat every listing as user-reviewed state from the API. Scheduled checks must never bypass review or mark an application as sent.
+The worker has a disabled-by-default scheduler for later automatic listing checks. The app should still treat every listing as user-reviewed state from the API. Scheduled checks must never bypass review or mark an application as sent.

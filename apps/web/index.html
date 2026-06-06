@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HomeHunter Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar" aria-label="Desktop Navigation">
+      <div class="sidebar-title">
+        <img src="/assets/hhunter-logo.png" alt="HHunter Logo" />
+        <span>HomeHunter</span>
+      </div>
+      <nav class="side-nav">
+        <button type="button" class="tab-link active" data-tab="overview"><span class="icon">⌂</span>Übersicht</button>
+        <button type="button" class="tab-link" data-tab="profiles"><span class="icon">≡</span>Suchprofile</button>
+        <button type="button" class="tab-link" data-tab="listings"><span class="icon">⌑</span>Inserate</button>
+        <button type="button" class="tab-link" data-tab="applications"><span class="icon">✉</span>Bewerbungen</button>
+        <button type="button" class="tab-link" data-tab="portals"><span class="icon">⌘</span>Portal-Konten</button>
+        <button type="button" class="tab-link" data-tab="setup"><span class="icon">✓</span>Setup</button>
+        <button type="button" class="tab-link" data-tab="settings"><span class="icon">⚙</span>Einstellungen</button>
+        <button type="button" class="tab-link" data-tab="events"><span class="icon">◷</span>App-Events</button>
+      </nav>
+    </aside>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="top-title">
+          <img src="/assets/hhunter-logo.png" alt="HHunter Logo" />
+          <h1 id="screen-title">Übersicht</h1>
+        </div>
+        <div class="user-chip"><span class="user-dot">○</span> you@example.com</div>
+      </header>
+
+      <nav class="mobile-nav" aria-label="Mobile Navigation">
+        <button type="button" class="tab-link active" data-tab="overview">⌂ Übersicht</button>
+        <button type="button" class="tab-link" data-tab="profiles">≡ Suchprofile</button>
+        <button type="button" class="tab-link" data-tab="listings">⌑ Inserate</button>
+        <button type="button" class="tab-link" data-tab="applications">✉ Bewerbungen</button>
+        <button type="button" class="tab-link" data-tab="portals">⌘ Portale</button>
+        <button type="button" class="tab-link" data-tab="setup">✓ Setup</button>
+        <button type="button" class="tab-link" data-tab="settings">⚙ Einstellungen</button>
+        <button type="button" class="tab-link" data-tab="events">◷ Events</button>
+      </nav>
+
+      <div class="content">
+        <section id="overview" class="view-section active" data-screen="overview">
+          <div class="stats-grid">
+            <article class="card stat-card">
+              <div>
+                <p>Wohnungen gefunden</p>
+                <strong id="stat-listings">0</strong>
+              </div>
+              <span class="stat-icon">⌑</span>
+            </article>
+            <article class="card stat-card">
+              <div>
+                <p>Bereit zum Senden</p>
+                <strong id="stat-ready">0</strong>
+              </div>
+              <span class="stat-icon">✓</span>
+            </article>
+            <article class="card stat-card">
+              <div>
+                <p>Duplikate</p>
+                <strong id="stat-duplicates">0</strong>
+              </div>
+              <span class="stat-icon">⧉</span>
+            </article>
+            <article class="card stat-card">
+              <div>
+                <p>Durchschnittsscore</p>
+                <strong id="stat-score">0%</strong>
+              </div>
+              <span class="stat-icon">↗</span>
+            </article>
+          </div>
+
+          <article class="card">
+            <header class="card-header">
+              <h2>Manuelles Inserat hinzufügen</h2>
+            </header>
+            <form class="manual-form" id="listing-form">
+              <div class="url-field">
+                <span>🔗</span>
+                <input id="source-url" name="sourceUrl" type="url" placeholder="https://www.kleinanzeigen.de/..." required />
+              </div>
+              <button class="btn primary" type="submit">Hinzufügen</button>
+            </form>
+            <output id="capture-result" class="form-result">API wird geprüft...</output>
+          </article>
+
+          <article class="card">
+            <header class="card-header">
+              <h2>Neueste Inserate</h2>
+            </header>
+            <div class="latest-list" id="latest-list"></div>
+          </article>
+        </section>
+
+        <section id="listings" class="view-section" data-screen="listings" hidden>
+          <article class="card">
+            <header class="card-header">
+              <h2>Inserate</h2>
+            </header>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Titel</th>
+                    <th>Preis</th>
+                    <th>Größe</th>
+                    <th>Score</th>
+                    <th>Status</th>
+                    <th>Kontakt</th>
+                  </tr>
+                </thead>
+                <tbody id="listing-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="applications" class="view-section" data-screen="applications" hidden>
+          <div class="application-list" id="application-list"></div>
+        </section>
+
+        <section id="profiles" class="view-section two-col profiles-grid" data-screen="profiles" hidden>
+          <article class="card">
+            <header class="card-header"><h2>Suchprofil anlegen</h2></header>
+            <form class="form-grid">
+              <label>Name<input value="Köln Innenstadt" /></label>
+              <label>Stadt<input value="Köln" /></label>
+              <label>Bezirke<input placeholder="Ehrenfeld, Nippes, Südstadt" /></label>
+              <div class="triple">
+                <label>Max. Preis<input value="1400" /></label>
+                <label>Min. Größe<input value="45" /></label>
+                <label>Zimmer<input value="2" /></label>
+              </div>
+              <label>Keywords<input placeholder="Balkon, Einbauküche" /></label>
+              <label>Ausschlusswörter<input placeholder="WBS, Tauschwohnung" /></label>
+              <label class="check-row"><input type="checkbox" /> Haustiere erlaubt</label>
+              <button class="btn primary" type="button">Profil speichern</button>
+            </form>
+          </article>
+          <article class="card">
+            <header class="card-header"><h2>Bestehende Profile</h2></header>
+            <div class="profile-list">
+              <div class="profile-row">
+                <div><strong>Köln Innenstadt</strong><p>Köln · bis 1.400 € · ab 45 m² · 2 Zimmer</p><small>Ehrenfeld, Nippes, Südstadt</small></div>
+                <span class="badge success">Aktiv</span>
+              </div>
+              <div class="profile-row">
+                <div><strong>Fallback manuell</strong><p>Alle Bezirke · bis 1.700 € · ab 55 m²</p><small>Alle Bezirke</small></div>
+                <span class="badge muted">Pausiert</span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="settings" class="view-section two-col" data-screen="settings" hidden>
+          <article class="card">
+            <header class="card-header"><h2>KI-Profil</h2></header>
+            <form class="form-grid">
+              <div class="double"><label>Vorname<input /></label><label>Nachname<input /></label></div>
+              <div class="double"><label>Kontakt-E-Mail<input /></label><label>Telefon<input /></label></div>
+              <div class="double"><label>Anrede<select><option>Bitte wählen</option><option>Herr</option><option>Frau</option><option>Divers</option></select></label><label>Alter<input /></label></div>
+              <div class="double"><label>Budget<input /></label><label>Nettoeinkommen<input /></label></div>
+              <label>Beruf<input /></label>
+              <label>Studium / Ausbildung<input /></label>
+              <label>Arbeitgeber<input /></label>
+              <label class="check-row"><input type="checkbox" /> Bürgschaft vorhanden</label>
+              <div class="double"><label>Haushaltsgröße<input /></label><label>Haustiere<input /></label></div>
+              <label>Einzugsdatum<input type="date" /></label>
+              <label>Aktuelle Wohnsituation<textarea></textarea></label>
+              <label>Umzugsgrund<textarea></textarea></label>
+              <label>Persönliche Beschreibung<textarea></textarea></label>
+              <button class="btn primary" type="button">Profil speichern</button>
+            </form>
+          </article>
+          <article class="card">
+            <header class="card-header"><h2>Automatisierung</h2></header>
+            <form class="form-grid">
+              <label class="check-row"><input type="checkbox" /> Scheduler aktiv</label>
+              <label class="check-row"><input type="checkbox" disabled /> Auto-Modus aktiv</label>
+              <label>Auto-Modus ab Score<input value="90" /></label>
+              <label>Max. Bewerbungen pro Stunde<input value="10" /></label>
+              <label>Max. Bewerbungen pro Tag<input value="50" /></label>
+              <p class="muted-note">Auto-Modus ist deaktiviert. Approval markiert nur `ready_to_send`.</p>
+              <button class="btn primary" type="button">Einstellungen speichern</button>
+            </form>
+          </article>
+        </section>
+
+        <section id="portals" class="view-section" data-screen="portals" hidden>
+          <div class="portals-grid" id="portal-list"></div>
+        </section>
+
+        <section id="setup" class="view-section" data-screen="setup" hidden>
+          <article class="card">
+            <header class="card-header setup-header"><h2>Setup</h2><span class="badge success">Bereit</span></header>
+            <div class="checklist">
+              <div><span class="ok">✓</span><p><strong>PostgreSQL verbunden</strong><small>Lokale Datenbank ist erreichbar.</small></p></div>
+              <div><span class="ok">✓</span><p><strong>API erreichbar</strong><small>Healthcheck läuft auf Port 3000.</small></p></div>
+              <div><span class="ok">✓</span><p><strong>Eigene Mobile-App</strong><small>Die App entsteht direkt hier im Codespace.</small></p></div>
+            </div>
+          </article>
+        </section>
+
+        <section id="events" class="view-section" data-screen="events" hidden>
+          <article class="card">
+            <header class="card-header"><h2>App-Events</h2></header>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Zeit</th><th>Typ</th><th>Nachricht</th><th>App-ID</th></tr></thead>
+                <tbody>
+                  <tr><td>Heute</td><td><span class="badge muted">system</span></td><td>Dashboard geladen</td><td>local-web</td></tr>
+                  <tr><td>Heute</td><td><span class="badge success">api</span></td><td>Healthcheck erfolgreich</td><td>codespace</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <nav class="bottom-toolbar" aria-label="Mobile Toolbar">
+        <button type="button" class="tab-link active" data-tab="overview"><span>⌂</span>Home</button>
+        <button type="button" class="tab-link" data-tab="listings"><span>⌑</span>Inserate</button>
+        <button type="button" class="tab-link" data-tab="applications"><span>✉</span>Review</button>
+        <button type="button" class="tab-link" data-tab="profiles"><span>≡</span>Suche</button>
+        <button type="button" class="tab-link" data-tab="settings"><span>⚙</span>Profil</button>
+      </nav>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
