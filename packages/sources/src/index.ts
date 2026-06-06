@@ -47,3 +47,46 @@ export const supportedSources: SourceDefinition[] = [
     notes: "Manual URL ingestion is the first product entrypoint."
   }
 ];
+
+export function detectSourceId(sourceUrl: string): SourceId {
+  const hostname = new URL(sourceUrl).hostname.toLowerCase();
+
+  if (hostname.endsWith("kleinanzeigen.de")) {
+    return "kleinanzeigen";
+  }
+
+  if (hostname.endsWith("immobilie1.de")) {
+    return "immobilie1";
+  }
+
+  if (hostname.endsWith("immowelt.de")) {
+    return "immowelt";
+  }
+
+  if (hostname.endsWith("immobilienscout24.de")) {
+    return "immoscout24";
+  }
+
+  return "manual";
+}
+
+export function getSourceDefinition(sourceId: SourceId): SourceDefinition {
+  const source = supportedSources.find((definition) => definition.id === sourceId);
+
+  if (!source) {
+    throw new Error(`Unknown source ${sourceId}`);
+  }
+
+  return source;
+}
+
+export function assertPlaywrightReadySource(sourceUrl: string): SourceId {
+  const sourceId = detectSourceId(sourceUrl);
+  const source = getSourceDefinition(sourceId);
+
+  if (source.capability !== "playwright" || source.status !== "ready") {
+    throw new Error(`Source ${sourceId} is not ready for Playwright fetching`);
+  }
+
+  return sourceId;
+}

@@ -172,7 +172,7 @@ Phase 1:
 
 - [x] Monorepo, Codespaces onboarding and collaboration boundaries
 - [x] Manual URL ingestion
-- [ ] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
+- [x] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
 - [ ] Minimal listing extraction
 - [ ] PostgreSQL persistence
 - [ ] Bilt app reads listings and submits review decisions

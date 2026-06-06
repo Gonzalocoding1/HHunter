@@ -1,5 +1,6 @@
 import Fastify from "fastify";
-import { applicationStatuses, type Listing, reviewStatuses, type SourceId } from "@homehunter/core";
+import { applicationStatuses, type Listing, reviewStatuses } from "@homehunter/core";
+import { detectSourceId } from "@homehunter/sources";
 
 type CreateListingPayload = {
   sourceUrl?: unknown;
@@ -63,26 +64,4 @@ function parseSourceUrl(value: unknown): string | null {
   } catch {
     return null;
   }
-}
-
-function detectSourceId(sourceUrl: string): SourceId {
-  const hostname = new URL(sourceUrl).hostname.toLowerCase();
-
-  if (hostname.endsWith("kleinanzeigen.de")) {
-    return "kleinanzeigen";
-  }
-
-  if (hostname.endsWith("immobilie1.de")) {
-    return "immobilie1";
-  }
-
-  if (hostname.endsWith("immowelt.de")) {
-    return "immowelt";
-  }
-
-  if (hostname.endsWith("immobilienscout24.de")) {
-    return "immoscout24";
-  }
-
-  return "manual";
 }
