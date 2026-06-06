@@ -26,6 +26,7 @@ API contract:
 
 - `GET /listings`
 - `GET /listings/:id`
+- `POST /listings/:id/extract`
 - `POST /listings/:id/generate-letter`
 - `POST /listings/:id/review` with `{ "decision": "approved" | "rejected" | "reviewed" }`
 

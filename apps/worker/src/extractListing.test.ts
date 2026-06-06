@@ -77,3 +77,14 @@ test("extractListing handles value-before-label inline layouts", () => {
   assert.equal(result.livingAreaSqm, 115);
   assert.equal(result.rooms, 2.5);
 });
+
+test("extractListing extracts floor information", () => {
+  const result = extractListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Wohnung mit Balkon",
+    text: "Etage 3\nWohnfläche 61 m²\n2 Zimmer"
+  });
+
+  assert.equal(result.floor, "3");
+});

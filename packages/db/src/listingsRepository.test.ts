@@ -313,3 +313,108 @@ test("saveApplicationDraft stores a prepared draft and marks listing prepared", 
     updatedAt: "2026-06-06T12:10:00.000Z"
   });
 });
+
+test("updateListingExtraction stores extracted listing details without changing application status", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      return {
+        rows: [
+          {
+            id: "listing-1",
+            source_id: "kleinanzeigen",
+            source_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            normalized_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            title: "Helle 2-Zimmer-Wohnung",
+            location: "50667 Koeln",
+            price_eur: 1250,
+            rooms: 2,
+            living_area_sqm: 61,
+            floor: "3",
+            equipment: ["Balkon", "Keller"],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: { extraction: { statusCode: 200 } },
+            application_draft: null,
+            application_draft_generated_at: null,
+            review_status: "new",
+            application_status: "new",
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T12:15:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const updated = await (
+    repository as never as {
+      updateListingExtraction: (
+        id: string,
+        extraction: {
+          title: string;
+          location?: string;
+          priceEur?: number;
+          rooms?: number;
+          livingAreaSqm?: number;
+          floor?: string;
+          equipment: string[];
+          rawData: Record<string, unknown>;
+        }
+      ) => Promise<unknown>;
+    }
+  ).updateListingExtraction("listing-1", {
+    title: "Helle 2-Zimmer-Wohnung",
+    location: "50667 Koeln",
+    priceEur: 1250,
+    rooms: 2,
+    livingAreaSqm: 61,
+    floor: "3",
+    equipment: ["Balkon", "Keller"],
+    rawData: { statusCode: 200 }
+  });
+
+  assert.match(queries[0].text, /update listings/i);
+  assert.deepEqual(queries[0].values, [
+    "listing-1",
+    "Helle 2-Zimmer-Wohnung",
+    "50667 Koeln",
+    1250,
+    2,
+    61,
+    "3",
+    ["Balkon", "Keller"],
+    JSON.stringify({ statusCode: 200 })
+  ]);
+  assert.deepEqual(updated, {
+    id: "listing-1",
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    normalizedUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Helle 2-Zimmer-Wohnung",
+    location: "50667 Koeln",
+    priceEur: 1250,
+    rooms: 2,
+    livingAreaSqm: 61,
+    floor: "3",
+    equipment: ["Balkon", "Keller"],
+    score: 0,
+    scoreLabel: "Nicht bewertet",
+    status: "new",
+    contactMethod: "form",
+    rawData: { extraction: { statusCode: 200 } },
+    reviewStatus: "new",
+    applicationStatus: "new",
+    createdAt: "2026-06-06T11:00:00.000Z",
+    updatedAt: "2026-06-06T12:15:00.000Z"
+  });
+});

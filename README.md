@@ -155,6 +155,7 @@ Current endpoints for Bilt and future Bilt MCP integration:
 - `GET /listings`
 - `GET /listings/:id`
 - `POST /listings`
+- `POST /listings/:id/extract`
 - `POST /listings/:id/generate-letter`
 - `POST /listings/:id/review`
 
@@ -170,7 +171,6 @@ Allowed decisions: `approved`, `rejected`, `reviewed`.
 
 Planned endpoints:
 
-- `POST /listings/:id/extract`
 - `POST /listings/:id/approve`
 - `POST /listings/:id/ready-to-send`
 
@@ -194,6 +194,7 @@ Phase 1:
 - [x] Manual URL ingestion
 - [x] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
 - [x] Minimal listing extraction
+- [x] API-triggered listing extraction
 - [x] PostgreSQL persistence
 - [x] Bilt app reads listings and submits review decisions
 - [x] OpenAI-generated letter draft

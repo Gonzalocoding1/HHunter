@@ -15,6 +15,7 @@ export type ExtractedListing = {
   priceEur?: number;
   livingAreaSqm?: number;
   rooms?: number;
+  floor?: string;
   equipment: string[];
   rawText: string;
 };
@@ -42,6 +43,7 @@ export function extractListing(input: ExtractListingInput): ExtractedListing {
     priceEur: extractEuroPrice(text),
     livingAreaSqm: extractNumberBeforeLabel(text, /wohnfläche/i),
     rooms: extractNumberBeforeLabel(text, /zimmer/i),
+    floor: extractFloor(text),
     equipment: extractEquipment(text),
     rawText: input.text
   };
@@ -108,6 +110,12 @@ function extractNumberBeforeLabel(text: string, label: RegExp): number | undefin
   }
 
   return undefined;
+}
+
+function extractFloor(text: string): string | undefined {
+  const match = text.match(/\b(?:etage|geschoss)\s*[:\-]?\s*([A-Za-zÄÖÜäöüß0-9. \-]+)/i);
+
+  return match?.[1]?.trim();
 }
 
 function parseGermanNumber(value: string): number | undefined {

@@ -26,6 +26,7 @@ For the hackathon, approval should mark the listing as `ready_to_send`. It must 
 
 - `GET /listings`: load the review inbox.
 - `GET /listings/:id`: load one listing detail screen.
+- `POST /listings/:id/extract`: fetch the source page and store extracted listing facts.
 - `POST /listings/:id/generate-letter`: create or refresh the German draft before review.
 - `POST /listings/:id/review`: submit a user decision.
 

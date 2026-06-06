@@ -12,6 +12,17 @@ export type CreateListingInput = {
   rawData?: Record<string, unknown>;
 };
 
+export type UpdateListingExtractionInput = {
+  title: string;
+  location?: string;
+  priceEur?: number;
+  rooms?: number;
+  livingAreaSqm?: number;
+  floor?: string;
+  equipment: string[];
+  rawData: Record<string, unknown>;
+};
+
 type ListingRow = {
   id: string;
   source_id: SourceId;
@@ -113,6 +124,37 @@ export function createListingsRepository(db: Queryable) {
         where id = $1
         returning *`,
         [id, draft]
+      );
+
+      const row = result.rows[0];
+      return row ? mapListingRow(row as ListingRow) : null;
+    },
+
+    async updateListingExtraction(id: string, extraction: UpdateListingExtractionInput): Promise<Listing | null> {
+      const result = await db.query(
+        `update listings
+        set title = $2,
+          location = $3,
+          price_eur = $4,
+          rooms = $5,
+          living_area_sqm = $6,
+          floor = $7,
+          equipment = $8,
+          raw_data = jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $9::jsonb, true),
+          updated_at = now()
+        where id = $1
+        returning *`,
+        [
+          id,
+          extraction.title,
+          extraction.location ?? null,
+          extraction.priceEur ?? null,
+          extraction.rooms ?? null,
+          extraction.livingAreaSqm ?? null,
+          extraction.floor ?? null,
+          extraction.equipment,
+          JSON.stringify(extraction.rawData)
+        ]
       );
 
       const row = result.rows[0];

@@ -6,8 +6,10 @@ import {
   type ReviewDecision,
   reviewStatuses
 } from "@homehunter/core";
-import { createListingsRepository, type CreateListingInput } from "@homehunter/db";
+import { createListingsRepository, type CreateListingInput, type UpdateListingExtractionInput } from "@homehunter/db";
 import { detectSourceId } from "@homehunter/sources";
+import { extractListing } from "@homehunter/worker/extractListing";
+import { fetchListingPage } from "@homehunter/worker/fetchListingPage";
 import pg from "pg";
 
 type CreateListingPayload = {
@@ -28,19 +30,23 @@ export type ListingsRepository = {
   getListingById: (id: string) => Promise<Listing | null>;
   updateReviewDecision: (id: string, decision: ReviewDecision) => Promise<Listing | null>;
   saveApplicationDraft: (id: string, draft: string) => Promise<Listing | null>;
+  updateListingExtraction: (id: string, extraction: UpdateListingExtractionInput) => Promise<Listing | null>;
 };
 
 export type LetterGenerator = (listing: Listing) => Promise<string>;
+export type ListingExtractor = (listing: Listing) => Promise<UpdateListingExtractionInput>;
 
 export type BuildApiOptions = {
   listingsRepository?: ListingsRepository;
   letterGenerator?: LetterGenerator;
+  listingExtractor?: ListingExtractor;
 };
 
 export function buildApi(options: BuildApiOptions = {}) {
   const server = Fastify({ logger: true });
   const listingsRepository = options.listingsRepository ?? createDefaultListingsRepository();
   const letterGenerator = options.letterGenerator ?? createOpenAiLetterGenerator();
+  const listingExtractor = options.listingExtractor ?? createPlaywrightListingExtractor();
 
   server.get("/health", async () => ({
     ok: true,
@@ -118,6 +124,23 @@ export function buildApi(options: BuildApiOptions = {}) {
     return updated;
   });
 
+  server.post<{ Params: ListingParams }>("/listings/:id/extract", async (request, reply) => {
+    const listing = await listingsRepository.getListingById(request.params.id);
+
+    if (!listing) {
+      return reply.code(404).send({ error: "listing not found" });
+    }
+
+    const extraction = await listingExtractor(listing);
+    const updated = await listingsRepository.updateListingExtraction(request.params.id, extraction);
+
+    if (!updated) {
+      return reply.code(404).send({ error: "listing not found" });
+    }
+
+    return updated;
+  });
+
   return server;
 }
 
@@ -180,6 +203,31 @@ function createOpenAiLetterGenerator(): LetterGenerator {
     }
 
     return payload.output_text.trim();
+  };
+}
+
+function createPlaywrightListingExtractor(): ListingExtractor {
+  return async (listing) => {
+    const page = await fetchListingPage(listing.sourceUrl);
+    const extracted = extractListing(page);
+
+    return {
+      title: extracted.title,
+      location: extracted.location,
+      priceEur: extracted.priceEur,
+      rooms: extracted.rooms,
+      livingAreaSqm: extracted.livingAreaSqm,
+      floor: extracted.floor,
+      equipment: extracted.equipment,
+      rawData: {
+        fetchedAt: page.fetchedAt,
+        finalUrl: page.finalUrl,
+        statusCode: page.statusCode,
+        textLength: page.text.length,
+        htmlLength: page.html.length,
+        rawText: extracted.rawText
+      }
+    };
   };
 }
 

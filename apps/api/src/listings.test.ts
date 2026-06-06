@@ -140,6 +140,48 @@ test("POST /listings/:id/generate-letter prepares a German application draft", a
   assert.ok(response.json().applicationDraftGeneratedAt);
 });
 
+test("POST /listings/:id/extract fetches, extracts and stores listing details", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({
+    listingsRepository,
+    listingExtractor: async (listing) => ({
+      title: "Helle 2-Zimmer-Wohnung",
+      location: "50667 Koeln",
+      priceEur: 1250,
+      rooms: 2,
+      livingAreaSqm: 61,
+      floor: "3",
+      equipment: ["Balkon", "Keller"],
+      rawData: {
+        sourceUrl: listing.sourceUrl,
+        fetchedAt: "2026-06-06T12:15:00.000Z",
+        statusCode: 200,
+        finalUrl: listing.sourceUrl
+      }
+    })
+  } as never);
+  const created = await listingsRepository.createListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Manual listing from kleinanzeigen"
+  });
+
+  const response = await app.inject({
+    method: "POST",
+    url: `/listings/${created.id}/extract`
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().title, "Helle 2-Zimmer-Wohnung");
+  assert.equal(response.json().location, "50667 Koeln");
+  assert.equal(response.json().priceEur, 1250);
+  assert.equal(response.json().rooms, 2);
+  assert.equal(response.json().livingAreaSqm, 61);
+  assert.equal(response.json().floor, "3");
+  assert.deepEqual(response.json().equipment, ["Balkon", "Keller"]);
+  assert.equal(response.json().applicationStatus, "new");
+});
+
 function createMemoryListingsRepository(): ListingsRepository {
   const listings: Listing[] = [];
 
@@ -206,6 +248,27 @@ function createMemoryListingsRepository(): ListingsRepository {
         applicationDraftGeneratedAt: new Date("2026-06-06T12:10:00.000Z").toISOString(),
         applicationStatus: "prepared",
         updatedAt: new Date("2026-06-06T12:10:00.000Z").toISOString()
+      };
+
+      listings[index] = updated;
+
+      return updated;
+    },
+
+    async updateListingExtraction(id, extraction) {
+      const index = listings.findIndex((listing) => listing.id === id);
+      if (index === -1) {
+        return null;
+      }
+
+      const updated: Listing = {
+        ...listings[index],
+        ...extraction,
+        rawData: {
+          ...listings[index].rawData,
+          extraction: extraction.rawData
+        },
+        updatedAt: new Date("2026-06-06T12:15:00.000Z").toISOString()
       };
 
       listings[index] = updated;
