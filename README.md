@@ -205,7 +205,8 @@ Phase 1:
 
 Phase 2:
 
-- [ ] Better duplicate detection
+- [x] Exact URL duplicate prevention
+- [ ] Fuzzy duplicate detection
 - [x] Relevance scoring
 - [x] Contact enrichment from listing text
 - [ ] Contact enrichment quality checks

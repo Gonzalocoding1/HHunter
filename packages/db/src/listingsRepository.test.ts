@@ -66,6 +66,60 @@ test("createListing persists a listing row and maps it back", async () => {
   assert.equal(created.createdAt, "2026-06-06T10:00:00.000Z");
 });
 
+test("createListing returns the existing row when normalized URL already exists", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      return {
+        rows: [
+          {
+            id: "existing-listing",
+            source_id: "kleinanzeigen",
+            source_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            normalized_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            title: "Existing listing",
+            location: null,
+            price_eur: null,
+            rooms: null,
+            living_area_sqm: null,
+            floor: null,
+            equipment: [],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: { source: "manual" },
+            application_draft: null,
+            application_draft_generated_at: null,
+            review_status: "new",
+            application_status: "new",
+            created_at: new Date("2026-06-06T10:00:00.000Z"),
+            updated_at: new Date("2026-06-06T10:00:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const created = await repository.createListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123#details",
+    title: "Manual listing from kleinanzeigen"
+  });
+
+  assert.match(queries[0].text, /on conflict \(normalized_url\)/i);
+  assert.equal(created.id, "existing-listing");
+  assert.equal(created.title, "Existing listing");
+  assert.equal(created.normalizedUrl, "https://www.kleinanzeigen.de/s-anzeige/demo/123");
+});
+
 test("listListings maps database rows to Listing objects", async () => {
   const db: Queryable = {
     async query() {

@@ -72,6 +72,8 @@ export function createListingsRepository(db: Queryable) {
           review_status,
           application_status
         ) values ($1, $2, $3, $4, $5, $6, 'new', 'new')
+        on conflict (normalized_url) do update
+        set normalized_url = excluded.normalized_url
         returning *`,
         [id, input.sourceId, input.sourceUrl, normalizedUrl, input.title, input.rawData ?? { source: "manual" }]
       );

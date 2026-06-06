@@ -53,6 +53,37 @@ test("POST /listings rejects invalid URLs", async () => {
   });
 });
 
+test("POST /listings returns the existing listing for duplicate URLs", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
+
+  const firstResponse = await app.inject({
+    method: "POST",
+    url: "/listings",
+    payload: {
+      sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123#details"
+    }
+  });
+  const secondResponse = await app.inject({
+    method: "POST",
+    url: "/listings",
+    payload: {
+      sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123"
+    }
+  });
+
+  assert.equal(firstResponse.statusCode, 201);
+  assert.equal(secondResponse.statusCode, 201);
+  assert.equal(secondResponse.json().id, firstResponse.json().id);
+
+  const listResponse = await app.inject({
+    method: "GET",
+    url: "/listings"
+  });
+
+  assert.equal(listResponse.json().length, 1);
+});
+
 test("GET /listings/:id returns a single listing", async () => {
   const listingsRepository = createMemoryListingsRepository();
   const app = buildApi({ listingsRepository });
@@ -217,12 +248,19 @@ function createMemoryListingsRepository(): ListingsRepository {
 
   return {
     async createListing(input) {
+      const normalizedUrl = normalizeMemoryUrl(input.sourceUrl);
+      const existingListing = listings.find((listing) => listing.normalizedUrl === normalizedUrl);
+
+      if (existingListing) {
+        return existingListing;
+      }
+
       const now = new Date("2026-06-06T12:00:00.000Z").toISOString();
       const listing: Listing = {
         id: `listing-${listings.length + 1}`,
         sourceId: input.sourceId,
         sourceUrl: input.sourceUrl,
-        normalizedUrl: input.sourceUrl,
+        normalizedUrl,
         title: input.title,
         score: 0,
         scoreLabel: "Nicht bewertet",
@@ -336,4 +374,12 @@ function inferContactMethod(contact: Listing["contact"]): Listing["contactMethod
   }
 
   return "external";
+}
+
+function normalizeMemoryUrl(sourceUrl: string): string {
+  const url = new URL(sourceUrl);
+  url.hash = "";
+  url.searchParams.sort();
+
+  return url.toString();
 }
