@@ -41,19 +41,22 @@ Out of scope for today:
 3. `Enrich Contact`
    If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL.
 
-4. `Generate Letter`
+4. `Score Relevance`
+   HomeHunter assigns an explainable score from `0` to `100` so the Bilt app can prioritize listings before review.
+
+5. `Generate Letter`
    OpenAI generates a German application letter tailored to the listing, the contact person and the user profile. The API key is read from `.env` as `OPENAI_API_KEY`.
 
-5. `Review`
+6. `Review`
    The Bilt mobile app shows the listing, extracted data, contact info and generated letter for user review.
 
-6. `Approve`
+7. `Approve`
    The user explicitly approves or rejects the prepared application. No send action happens before approval.
 
-7. `Ready to Send`
+8. `Ready to Send`
    In the hackathon version, approval marks an application as `ready_to_send`. Actual sending is a later feature.
 
-8. `Track`
+9. `Track`
    HomeHunter tracks the development of each listing through statuses such as `new`, `prepared`, `reviewed`, `approved`, `ready_to_send`, `responded`, `viewing_scheduled`, `rejected` and `archived`.
 
 ## Current Source Strategy
@@ -203,7 +206,7 @@ Phase 1:
 Phase 2:
 
 - [ ] Better duplicate detection
-- [ ] Relevance scoring
+- [x] Relevance scoring
 - [x] Contact enrichment from listing text
 - [ ] Contact enrichment quality checks
 - [ ] Source-specific parsers

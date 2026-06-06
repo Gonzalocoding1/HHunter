@@ -10,6 +10,7 @@
   "scripts": {
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
+    "test:core": "tsx --test packages/core/src/*.test.ts",
     "test:api": "tsx --test apps/api/src/*.test.ts",
     "test:db": "tsx --test packages/db/src/*.test.ts",
     "test:sources": "tsx --test packages/sources/src/*.test.ts",

@@ -186,6 +186,19 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
   assert.equal(response.json().livingAreaSqm, 61);
   assert.equal(response.json().floor, "3");
   assert.deepEqual(response.json().equipment, ["Balkon", "Keller"]);
+  assert.equal(response.json().score, 100);
+  assert.equal(response.json().scoreLabel, "Top Match");
+  assert.deepEqual(response.json().rawData.scoring, {
+    score: 100,
+    scoreLabel: "Top Match",
+    reasons: [
+      "Preis liegt im Budget",
+      "Wohnflaeche passt",
+      "Zimmeranzahl passt",
+      "Lage passt zu Koeln",
+      "Ausstattung passt: Balkon"
+    ]
+  });
   assert.equal(response.json().contactMethod, "email");
   assert.equal(response.json().contactEmail, "maria.becker@example.com");
   assert.equal(response.json().applicationUrl, "https://www.kleinanzeigen.de/s-kontakt/demo/123");
@@ -281,12 +294,15 @@ function createMemoryListingsRepository(): ListingsRepository {
       const updated: Listing = {
         ...listings[index],
         ...extraction,
+        score: extraction.score ?? listings[index].score,
+        scoreLabel: extraction.scoreLabel ?? listings[index].scoreLabel,
         contactMethod: inferContactMethod(extraction.contact),
         contactEmail: extraction.contact?.email,
         applicationUrl: extraction.contact?.contactFormUrl,
         rawData: {
           ...listings[index].rawData,
-          extraction: extraction.rawData
+          extraction: extraction.rawData,
+          ...(extraction.scoring ? { scoring: extraction.scoring } : {})
         },
         updatedAt: new Date("2026-06-06T12:15:00.000Z").toISOString()
       };

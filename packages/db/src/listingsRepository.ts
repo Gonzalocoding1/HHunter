@@ -21,6 +21,9 @@ export type UpdateListingExtractionInput = {
   floor?: string;
   equipment: string[];
   contact?: ContactInfo;
+  score?: number;
+  scoreLabel?: string;
+  scoring?: Record<string, unknown>;
   rawData: Record<string, unknown>;
 };
 
@@ -145,7 +148,14 @@ export function createListingsRepository(db: Queryable) {
           contact_email = $10,
           application_url = $11,
           contact = $12,
-          raw_data = jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $13::jsonb, true),
+          score = $13,
+          score_label = $14,
+          raw_data = jsonb_set(
+            jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $16::jsonb, true),
+            '{scoring}',
+            $15::jsonb,
+            true
+          ),
           updated_at = now()
         where id = $1
         returning *`,
@@ -162,6 +172,9 @@ export function createListingsRepository(db: Queryable) {
           extraction.contact?.email ?? null,
           extraction.contact?.contactFormUrl ?? null,
           extraction.contact ?? null,
+          extraction.score ?? 0,
+          extraction.scoreLabel ?? "Nicht bewertet",
+          JSON.stringify(extraction.scoring ?? {}),
           JSON.stringify(extraction.rawData)
         ]
       );

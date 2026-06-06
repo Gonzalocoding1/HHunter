@@ -15,7 +15,7 @@ Important rule: never send an application automatically. Approval only marks a l
 Screens:
 
 - Inbox with new prepared listings.
-- Listing detail with price, rooms, living area, floor, equipment, location, contact person, company, phone, email, contact form, source and original URL.
+- Listing detail with score, score label, score reasons, price, rooms, living area, floor, equipment, location, contact person, company, phone, email, contact form, source and original URL.
 - Letter review with editable generated German application letter.
 - Approval actions: reject, later, approve.
 - Pipeline overview grouped by status.

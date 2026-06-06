@@ -166,8 +166,8 @@ test("updateReviewDecision persists approved review status", async () => {
             living_area_sqm: null,
             floor: null,
             equipment: [],
-            score: 0,
-            score_label: "Nicht bewertet",
+            score: 100,
+            score_label: "Top Match",
             duplicate_of_id: null,
             status: "new",
             contact_method: "form",
@@ -334,8 +334,8 @@ test("updateListingExtraction stores extracted listing details without changing 
             living_area_sqm: 61,
             floor: "3",
             equipment: ["Balkon", "Keller"],
-            score: 0,
-            score_label: "Nicht bewertet",
+            score: 100,
+            score_label: "Top Match",
             duplicate_of_id: null,
             status: "new",
             contact_method: "email",
@@ -348,7 +348,10 @@ test("updateListingExtraction stores extracted listing details without changing 
               email: "maria.becker@example.com",
               contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
             },
-            raw_data: { extraction: { statusCode: 200 } },
+            raw_data: {
+              extraction: { statusCode: 200 },
+              scoring: { score: 100, scoreLabel: "Top Match", reasons: ["Preis liegt im Budget"] }
+            },
             application_draft: null,
             application_draft_generated_at: null,
             review_status: "new",
@@ -381,6 +384,9 @@ test("updateListingExtraction stores extracted listing details without changing 
             email?: string;
             contactFormUrl?: string;
           };
+          score?: number;
+          scoreLabel?: string;
+          scoring?: Record<string, unknown>;
           rawData: Record<string, unknown>;
         }
       ) => Promise<unknown>;
@@ -400,6 +406,9 @@ test("updateListingExtraction stores extracted listing details without changing 
       email: "maria.becker@example.com",
       contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
     },
+    score: 100,
+    scoreLabel: "Top Match",
+    scoring: { score: 100, scoreLabel: "Top Match", reasons: ["Preis liegt im Budget"] },
     rawData: { statusCode: 200 }
   });
 
@@ -423,6 +432,9 @@ test("updateListingExtraction stores extracted listing details without changing 
       email: "maria.becker@example.com",
       contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
     },
+    100,
+    "Top Match",
+    JSON.stringify({ score: 100, scoreLabel: "Top Match", reasons: ["Preis liegt im Budget"] }),
     JSON.stringify({ statusCode: 200 })
   ]);
   assert.deepEqual(updated, {
@@ -437,8 +449,8 @@ test("updateListingExtraction stores extracted listing details without changing 
     livingAreaSqm: 61,
     floor: "3",
     equipment: ["Balkon", "Keller"],
-    score: 0,
-    scoreLabel: "Nicht bewertet",
+    score: 100,
+    scoreLabel: "Top Match",
     status: "new",
     contactMethod: "email",
     contactEmail: "maria.becker@example.com",
@@ -450,7 +462,10 @@ test("updateListingExtraction stores extracted listing details without changing 
       email: "maria.becker@example.com",
       contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
     },
-    rawData: { extraction: { statusCode: 200 } },
+    rawData: {
+      extraction: { statusCode: 200 },
+      scoring: { score: 100, scoreLabel: "Top Match", reasons: ["Preis liegt im Budget"] }
+    },
     reviewStatus: "new",
     applicationStatus: "new",
     createdAt: "2026-06-06T11:00:00.000Z",

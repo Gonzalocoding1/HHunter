@@ -4,7 +4,8 @@ import {
   type Listing,
   reviewDecisions,
   type ReviewDecision,
-  reviewStatuses
+  reviewStatuses,
+  scoreListing
 } from "@homehunter/core";
 import { createListingsRepository, type CreateListingInput, type UpdateListingExtractionInput } from "@homehunter/db";
 import { detectSourceId } from "@homehunter/sources";
@@ -132,7 +133,13 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     const extraction = await listingExtractor(listing);
-    const updated = await listingsRepository.updateListingExtraction(request.params.id, extraction);
+    const scoring = scoreListing(extraction);
+    const updated = await listingsRepository.updateListingExtraction(request.params.id, {
+      ...extraction,
+      score: scoring.score,
+      scoreLabel: scoring.scoreLabel,
+      scoring
+    });
 
     if (!updated) {
       return reply.code(404).send({ error: "listing not found" });
