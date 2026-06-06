@@ -133,3 +133,63 @@ test("listListings maps database rows to Listing objects", async () => {
     }
   ]);
 });
+
+test("getListingById returns null when no row exists", async () => {
+  const db: Queryable = {
+    async query() {
+      return { rows: [] };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+
+  assert.equal(await repository.getListingById("missing"), null);
+});
+
+test("updateReviewDecision persists approved review status", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      return {
+        rows: [
+          {
+            id: "listing-1",
+            source_id: "immobilie1",
+            source_url: "https://anbieter.immobilie1.de/expose/demo",
+            normalized_url: "https://anbieter.immobilie1.de/expose/demo",
+            title: "Schöne Wohnung",
+            location: null,
+            price_eur: null,
+            rooms: null,
+            living_area_sqm: null,
+            floor: null,
+            equipment: [],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: null,
+            review_status: "approved",
+            application_status: "approved",
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T11:05:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const updated = await repository.updateReviewDecision("listing-1", "approved");
+
+  assert.match(queries[0].text, /update listings/i);
+  assert.deepEqual(queries[0].values, ["listing-1", "approved", "approved"]);
+  assert.equal(updated?.reviewStatus, "approved");
+  assert.equal(updated?.applicationStatus, "approved");
+});

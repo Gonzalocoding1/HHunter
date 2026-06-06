@@ -21,3 +21,11 @@ Screens:
 - Pipeline overview grouped by status.
 
 Use compact mobile UI suitable for repeated review work.
+
+API contract:
+
+- `GET /listings`
+- `GET /listings/:id`
+- `POST /listings/:id/review` with `{ "decision": "approved" | "rejected" | "reviewed" }`
+
+Keep review state in the HomeHunter API. Do not create separate local-only state in the app.

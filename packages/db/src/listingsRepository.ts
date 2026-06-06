@@ -1,4 +1,5 @@
 import type { ContactInfo, Listing, SourceId } from "@homehunter/core";
+import type { ReviewDecision } from "@homehunter/core";
 
 export type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }>;
@@ -69,6 +70,35 @@ export function createListingsRepository(db: Queryable) {
       );
 
       return result.rows.map((row) => mapListingRow(row as ListingRow));
+    },
+
+    async getListingById(id: string): Promise<Listing | null> {
+      const result = await db.query(
+        `select *
+        from listings
+        where id = $1
+        limit 1`,
+        [id]
+      );
+
+      const row = result.rows[0];
+      return row ? mapListingRow(row as ListingRow) : null;
+    },
+
+    async updateReviewDecision(id: string, decision: ReviewDecision): Promise<Listing | null> {
+      const applicationStatus = decision === "approved" ? "approved" : "reviewed";
+      const result = await db.query(
+        `update listings
+        set review_status = $2,
+          application_status = $3,
+          updated_at = now()
+        where id = $1
+        returning *`,
+        [id, decision, applicationStatus]
+      );
+
+      const row = result.rows[0];
+      return row ? mapListingRow(row as ListingRow) : null;
     }
   };
 }

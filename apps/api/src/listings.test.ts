@@ -53,6 +53,69 @@ test("POST /listings rejects invalid URLs", async () => {
   });
 });
 
+test("GET /listings/:id returns a single listing", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
+  const created = await listingsRepository.createListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Manual listing from kleinanzeigen"
+  });
+
+  const response = await app.inject({
+    method: "GET",
+    url: `/listings/${created.id}`
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), created);
+});
+
+test("POST /listings/:id/review stores an approval decision", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
+  const created = await listingsRepository.createListing({
+    sourceId: "immobilie1",
+    sourceUrl: "https://anbieter.immobilie1.de/expose/demo",
+    title: "Manual listing from immobilie1"
+  });
+
+  const response = await app.inject({
+    method: "POST",
+    url: `/listings/${created.id}/review`,
+    payload: {
+      decision: "approved"
+    }
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().reviewStatus, "approved");
+  assert.equal(response.json().applicationStatus, "approved");
+});
+
+test("POST /listings/:id/review rejects unknown decisions", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
+  const created = await listingsRepository.createListing({
+    sourceId: "immobilie1",
+    sourceUrl: "https://anbieter.immobilie1.de/expose/demo",
+    title: "Manual listing from immobilie1"
+  });
+
+  const response = await app.inject({
+    method: "POST",
+    url: `/listings/${created.id}/review`,
+    payload: {
+      decision: "send_now"
+    }
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.json(), {
+    error: "decision must be one of approved, rejected, reviewed"
+  });
+});
+
 function createMemoryListingsRepository(): ListingsRepository {
   const listings: Listing[] = [];
 
@@ -83,6 +146,28 @@ function createMemoryListingsRepository(): ListingsRepository {
 
     async listListings() {
       return listings;
+    },
+
+    async getListingById(id) {
+      return listings.find((listing) => listing.id === id) ?? null;
+    },
+
+    async updateReviewDecision(id, decision) {
+      const index = listings.findIndex((listing) => listing.id === id);
+      if (index === -1) {
+        return null;
+      }
+
+      const updated: Listing = {
+        ...listings[index],
+        reviewStatus: decision,
+        applicationStatus: decision === "approved" ? "approved" : listings[index].applicationStatus,
+        updatedAt: new Date("2026-06-06T12:05:00.000Z").toISOString()
+      };
+
+      listings[index] = updated;
+
+      return updated;
     }
   };
 }

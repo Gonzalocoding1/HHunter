@@ -1,4 +1,5 @@
 export const reviewStatuses = ["new", "prepared", "reviewed", "approved", "rejected"] as const;
+export const reviewDecisions = ["approved", "rejected", "reviewed"] as const;
 export const applicationStatuses = [
   "new",
   "prepared",
@@ -14,6 +15,7 @@ export const listingStatuses = ["new", "ignored", "duplicate", "error"] as const
 export const contactMethods = ["form", "email", "external"] as const;
 
 export type ReviewStatus = (typeof reviewStatuses)[number];
+export type ReviewDecision = (typeof reviewDecisions)[number];
 export type ApplicationStatus = (typeof applicationStatuses)[number];
 export type ListingStatus = (typeof listingStatuses)[number];
 export type ContactMethod = (typeof contactMethods)[number];

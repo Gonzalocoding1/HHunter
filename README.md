@@ -181,7 +181,7 @@ Phase 1:
 - [x] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
 - [x] Minimal listing extraction
 - [x] PostgreSQL persistence
-- [ ] Bilt app reads listings and submits review decisions
+- [x] Bilt app reads listings and submits review decisions
 - [ ] OpenAI-generated letter draft
 - [ ] Approved listings become `ready_to_send`
 
