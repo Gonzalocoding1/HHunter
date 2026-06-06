@@ -1,14 +1,6 @@
-import Fastify from "fastify";
-import { applicationStatuses, reviewStatuses } from "@homehunter/core";
+import { buildApi } from "./server.ts";
 
-const server = Fastify({ logger: true });
-
-server.get("/health", async () => ({
-  ok: true,
-  service: "homehunter-api",
-  reviewStatuses,
-  applicationStatuses
-}));
+const server = buildApi();
 
 const host = process.env.API_HOST ?? "0.0.0.0";
 const port = Number(process.env.API_PORT ?? 3000);

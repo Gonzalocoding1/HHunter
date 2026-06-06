@@ -10,6 +10,7 @@
   "scripts": {
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
+    "test:api": "tsx --test apps/api/src/*.test.ts",
     "test:smoke": "playwright test tests/portals.smoke.spec.js --reporter=line"
   },
   "devDependencies": {

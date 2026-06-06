@@ -171,7 +171,7 @@ Secrets are never committed. `.env` is ignored by git. `.env.example` documents 
 Phase 1:
 
 - [x] Monorepo, Codespaces onboarding and collaboration boundaries
-- [ ] Manual URL ingestion
+- [x] Manual URL ingestion
 - [ ] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
 - [ ] Minimal listing extraction
 - [ ] PostgreSQL persistence
