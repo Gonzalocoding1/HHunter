@@ -90,7 +90,7 @@ test("POST /listings/:id/review stores an approval decision", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.json().reviewStatus, "approved");
-  assert.equal(response.json().applicationStatus, "approved");
+  assert.equal(response.json().applicationStatus, "ready_to_send");
 });
 
 test("POST /listings/:id/review rejects unknown decisions", async () => {
@@ -161,7 +161,7 @@ function createMemoryListingsRepository(): ListingsRepository {
       const updated: Listing = {
         ...listings[index],
         reviewStatus: decision,
-        applicationStatus: decision === "approved" ? "approved" : listings[index].applicationStatus,
+        applicationStatus: mapDecisionToApplicationStatus(decision),
         updatedAt: new Date("2026-06-06T12:05:00.000Z").toISOString()
       };
 
@@ -170,4 +170,16 @@ function createMemoryListingsRepository(): ListingsRepository {
       return updated;
     }
   };
+}
+
+function mapDecisionToApplicationStatus(decision: "approved" | "rejected" | "reviewed"): Listing["applicationStatus"] {
+  if (decision === "approved") {
+    return "ready_to_send";
+  }
+
+  if (decision === "rejected") {
+    return "rejected";
+  }
+
+  return "reviewed";
 }

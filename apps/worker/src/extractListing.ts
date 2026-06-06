@@ -86,8 +86,18 @@ function extractEuroPrice(text: string): number | undefined {
 function extractNumberBeforeLabel(text: string, label: RegExp): number | undefined {
   const lines = text.split("\n");
 
-  for (let index = 1; index < lines.length; index += 1) {
-    if (!label.test(lines[index])) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = lines[index];
+    if (!label.test(currentLine)) {
+      continue;
+    }
+
+    const inlineValue = parseGermanNumber(currentLine);
+    if (inlineValue !== undefined) {
+      return inlineValue;
+    }
+
+    if (index === 0) {
       continue;
     }
 

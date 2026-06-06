@@ -18,7 +18,7 @@ Create Listing -> Extract Details -> Enrich Contact -> Generate Letter -> Review
 
 ## Backend Contract
 
-Use the API endpoints documented in the root `README.md`.
+Use the current API endpoints documented in the root `README.md`.
 
 For the hackathon, approval should mark the listing as `ready_to_send`. It must not send a real message.
 

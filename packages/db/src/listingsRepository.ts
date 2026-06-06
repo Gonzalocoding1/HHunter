@@ -86,7 +86,7 @@ export function createListingsRepository(db: Queryable) {
     },
 
     async updateReviewDecision(id: string, decision: ReviewDecision): Promise<Listing | null> {
-      const applicationStatus = decision === "approved" ? "approved" : "reviewed";
+      const applicationStatus = mapDecisionToApplicationStatus(decision);
       const result = await db.query(
         `update listings
         set review_status = $2,
@@ -134,6 +134,18 @@ function mapListingRow(row: ListingRow): Listing {
 
 function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function mapDecisionToApplicationStatus(decision: ReviewDecision): Listing["applicationStatus"] {
+  if (decision === "approved") {
+    return "ready_to_send";
+  }
+
+  if (decision === "rejected") {
+    return "rejected";
+  }
+
+  return "reviewed";
 }
 
 function normalizeUrl(sourceUrl: string): string {

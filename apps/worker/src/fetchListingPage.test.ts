@@ -34,6 +34,32 @@ test("fetchListingPage fetches immobilie1 pages with Playwright", async () => {
   }
 });
 
+test("fetchListingPage fetches Kleinanzeigen pages with Playwright", async () => {
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const result = await fetchListingPage("https://www.kleinanzeigen.de/s-wohnung-mieten/c203", {
+      browser,
+      preparePage: async (page) => {
+        await page.route("**/*", async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: "text/html",
+            body: "<html><head><title>Mietwohnung | kleinanzeigen.de</title></head><body>Mietwohnungen 1 - 25 von 111.866 Mietwohnungen in Deutschland</body></html>"
+          });
+        });
+      }
+    });
+
+    assert.equal(result.sourceId, "kleinanzeigen");
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.title, "Mietwohnung | kleinanzeigen.de");
+    assert.match(result.text, /Mietwohnungen/);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("fetchListingPage rejects sources that are not Playwright-ready", async () => {
   await assert.rejects(
     () => fetchListingPage("https://www.immowelt.de/"),

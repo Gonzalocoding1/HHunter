@@ -176,7 +176,7 @@ test("updateReviewDecision persists approved review status", async () => {
             contact: null,
             raw_data: null,
             review_status: "approved",
-            application_status: "approved",
+            application_status: "ready_to_send",
             created_at: new Date("2026-06-06T11:00:00.000Z"),
             updated_at: new Date("2026-06-06T11:05:00.000Z")
           }
@@ -189,7 +189,54 @@ test("updateReviewDecision persists approved review status", async () => {
   const updated = await repository.updateReviewDecision("listing-1", "approved");
 
   assert.match(queries[0].text, /update listings/i);
-  assert.deepEqual(queries[0].values, ["listing-1", "approved", "approved"]);
+  assert.deepEqual(queries[0].values, ["listing-1", "approved", "ready_to_send"]);
   assert.equal(updated?.reviewStatus, "approved");
-  assert.equal(updated?.applicationStatus, "approved");
+  assert.equal(updated?.applicationStatus, "ready_to_send");
+});
+
+test("updateReviewDecision maps rejected decisions to rejected application status", async () => {
+  const queries: Array<{ values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(_text, values = []) {
+      queries.push({ values });
+
+      return {
+        rows: [
+          {
+            id: "listing-1",
+            source_id: "immobilie1",
+            source_url: "https://anbieter.immobilie1.de/expose/demo",
+            normalized_url: "https://anbieter.immobilie1.de/expose/demo",
+            title: "Schöne Wohnung",
+            location: null,
+            price_eur: null,
+            rooms: null,
+            living_area_sqm: null,
+            floor: null,
+            equipment: [],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: null,
+            review_status: "rejected",
+            application_status: "rejected",
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T11:05:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const updated = await repository.updateReviewDecision("listing-1", "rejected");
+
+  assert.deepEqual(queries[0].values, ["listing-1", "rejected", "rejected"]);
+  assert.equal(updated?.reviewStatus, "rejected");
+  assert.equal(updated?.applicationStatus, "rejected");
 });

@@ -146,17 +146,30 @@ npm run test:smoke
 
 In this environment, Playwright may need to run outside the default sandbox for Chromium to launch.
 
-## API Plan
+## API Contract
 
-Initial endpoints for Bilt:
+Current endpoints for Bilt and future Bilt MCP integration:
 
 - `GET /health`
 - `GET /listings`
 - `GET /listings/:id`
 - `POST /listings`
+- `POST /listings/:id/review`
+
+Review payload:
+
+```json
+{
+  "decision": "approved"
+}
+```
+
+Allowed decisions: `approved`, `rejected`, `reviewed`.
+
+Planned endpoints:
+
 - `POST /listings/:id/extract`
 - `POST /listings/:id/generate-letter`
-- `POST /listings/:id/review`
 - `POST /listings/:id/approve`
 - `POST /listings/:id/ready-to-send`
 

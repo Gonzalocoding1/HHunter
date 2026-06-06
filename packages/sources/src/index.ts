@@ -51,23 +51,27 @@ export const supportedSources: SourceDefinition[] = [
 export function detectSourceId(sourceUrl: string): SourceId {
   const hostname = new URL(sourceUrl).hostname.toLowerCase();
 
-  if (hostname.endsWith("kleinanzeigen.de")) {
+  if (isHostOrSubdomain(hostname, "kleinanzeigen.de")) {
     return "kleinanzeigen";
   }
 
-  if (hostname.endsWith("immobilie1.de")) {
+  if (isHostOrSubdomain(hostname, "immobilie1.de")) {
     return "immobilie1";
   }
 
-  if (hostname.endsWith("immowelt.de")) {
+  if (isHostOrSubdomain(hostname, "immowelt.de")) {
     return "immowelt";
   }
 
-  if (hostname.endsWith("immobilienscout24.de")) {
+  if (isHostOrSubdomain(hostname, "immobilienscout24.de") || isHostOrSubdomain(hostname, "immoscout24.de")) {
     return "immoscout24";
   }
 
   return "manual";
+}
+
+function isHostOrSubdomain(hostname: string, domain: string): boolean {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
 }
 
 export function getSourceDefinition(sourceId: SourceId): SourceDefinition {
