@@ -1,6 +1,6 @@
-# HunterAi Bilt App
+# HomeHunter Bilt App
 
-Bilt replaces Telegram as the review and approval surface.
+Bilt is the review and approval app surface for HomeHunter.
 
 This app should connect to the Codespace API and provide the mobile workflow:
 

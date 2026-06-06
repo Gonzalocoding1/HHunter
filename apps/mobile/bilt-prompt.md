@@ -1,6 +1,6 @@
-# Bilt Prompt: HunterAi Mobile App
+# Bilt Prompt: HomeHunter Mobile App
 
-Build a native mobile app for HunterAi, a private single-user apartment hunting assistant for Germany.
+Build a native mobile app for HomeHunter, a private single-user apartment hunting assistant for Germany. The logo/short name is HHunter.
 
 The app connects to a REST API running in a GitHub Codespace. It is the main review and approval surface.
 

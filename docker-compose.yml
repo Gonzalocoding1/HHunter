@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: hunterai
-      POSTGRES_PASSWORD: hunterai
-      POSTGRES_DB: hunterai
+      POSTGRES_USER: homehunter
+      POSTGRES_PASSWORD: homehunter
+      POSTGRES_DB: homehunter
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hunterai -d hunterai"]
+      test: ["CMD-SHELL", "pg_isready -U homehunter -d homehunter"]
       interval: 5s
       timeout: 5s
       retries: 10

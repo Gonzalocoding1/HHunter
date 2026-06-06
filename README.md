@@ -1,6 +1,6 @@
-# HunterAi
+# HomeHunter
 
-HunterAi is a private single-user assistant for apartment hunting in Germany.
+HomeHunter is a private single-user assistant for apartment hunting in Germany. The logo/short name is `HHunter`.
 
 The product does not blindly apply to apartments. It automates the repetitive middle of the search and keeps the final decision with the user.
 
@@ -18,14 +18,14 @@ Today we optimize for:
 - Codespaces-ready onboarding
 - Playwright source checks for portals that currently work
 - PostgreSQL as the persistence layer
-- API contracts that Bilt can use for the mobile app
+- API contracts that the Bilt app can use
 - a strict approval boundary before anything is marked ready to send
 
 Out of scope for today:
 
 - blind automatic applications
 - real message sending
-- Telegram integration
+- production-grade mobile polish
 - production auth
 - full duplicate detection
 - full AI scoring
@@ -39,7 +39,7 @@ Out of scope for today:
    The worker scrapes the listing page and extracts fields such as title, location, price, rooms, living area, floor, equipment, availability, source URL and raw page snapshot.
 
 3. `Enrich Contact`
-   If the listing names a contact person or company, HunterAi stores public contact data found in the listing or officially linked public pages, such as phone number, email address or contact form URL.
+   If the listing names a contact person or company, HomeHunter stores public contact data found in the listing or officially linked public pages, such as phone number, email address or contact form URL.
 
 4. `Generate Letter`
    OpenAI generates a German application letter tailored to the listing, the contact person and the user profile. The API key is read from `.env` as `OPENAI_API_KEY`.
@@ -54,7 +54,7 @@ Out of scope for today:
    In the hackathon version, approval marks an application as `ready_to_send`. Actual sending is a later feature.
 
 8. `Track`
-   HunterAi tracks the development of each listing through statuses such as `new`, `prepared`, `reviewed`, `approved`, `ready_to_send`, `responded`, `viewing_scheduled`, `rejected` and `archived`.
+   HomeHunter tracks the development of each listing through statuses such as `new`, `prepared`, `reviewed`, `approved`, `ready_to_send`, `responded`, `viewing_scheduled`, `rejected` and `archived`.
 
 ## Current Source Strategy
 
@@ -109,7 +109,7 @@ Fill in local secrets:
 ```env
 SCRAPERAPI_KEY=
 OPENAI_API_KEY=
-DATABASE_URL=postgresql://hunterai:hunterai@localhost:5432/hunterai
+DATABASE_URL=postgresql://homehunter:homehunter@localhost:5432/homehunter
 API_HOST=0.0.0.0
 API_PORT=3000
 ```

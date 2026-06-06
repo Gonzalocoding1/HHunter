@@ -1,4 +1,4 @@
-import type { SourceId } from "@hunterai/core";
+import type { SourceId } from "@homehunter/core";
 
 export type SourceCapability = "playwright" | "scraperapi" | "manual";
 

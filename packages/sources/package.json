@@ -1,5 +1,5 @@
 {
-  "name": "@hunterai/sources",
+  "name": "@homehunter/sources",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@hunterai/core": "0.1.0"
+    "@homehunter/core": "0.1.0"
   }
 }

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { supportedSources } from "@hunterai/sources";
+import { supportedSources } from "@homehunter/sources";
 
-console.log("HunterAi worker ready");
+console.log("HomeHunter worker ready");
 console.log("Supported sources:", supportedSources.map((source) => source.id).join(", "));

@@ -1,11 +1,11 @@
 import Fastify from "fastify";
-import { applicationStatuses, reviewStatuses } from "@hunterai/core";
+import { applicationStatuses, reviewStatuses } from "@homehunter/core";
 
 const server = Fastify({ logger: true });
 
 server.get("/health", async () => ({
   ok: true,
-  service: "hunterai-api",
+  service: "homehunter-api",
   reviewStatuses,
   applicationStatuses
 }));
