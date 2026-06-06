@@ -24,6 +24,13 @@ document.querySelectorAll("[data-tab]").forEach((button) => {
   });
 });
 
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!(button instanceof HTMLButtonElement)) return;
+
+  await runListingAction(button);
+});
+
 renderPortals();
 void loadListings();
 
@@ -60,7 +67,10 @@ form.addEventListener("submit", async (event) => {
 
     form.reset();
     result.style.color = "hsl(var(--primary))";
-    result.textContent = "Inserat erfasst. Extraktion und Review können folgen.";
+    const listing = await response.json();
+    result.textContent = listing.extractionError
+      ? `Inserat erfasst, Extraktion fehlgeschlagen: ${listing.extractionError}`
+      : "Inserat erfasst und Infos aus dem Link extrahiert.";
     await loadListings();
   } catch {
     result.style.color = "hsl(var(--destructive))";
@@ -136,7 +146,7 @@ function renderTable(listings) {
       <td><strong>${listing.livingAreaSqm ?? "?"} m²</strong><span class="meta">${listing.rooms ?? "?"} Zimmer</span></td>
       <td><strong>${listing.score ?? 0}</strong><span class="meta">${escapeHtml(listing.scoreLabel ?? "Nicht bewertet")}</span></td>
       <td>${statusBadge(listing.status)}<span class="meta">${escapeHtml(listing.applicationStatus ?? "new")}</span></td>
-      <td>${renderContact(listing)}</td>
+      <td>${renderContact(listing)}${renderListingActions(listing)}</td>
     </tr>
   `).join("");
 }
@@ -166,15 +176,63 @@ function renderApplications(listings) {
         <textarea>${escapeHtml(listing.applicationDraft ?? "Noch kein Anschreiben generiert. Review bleibt manuell.")}</textarea>
         <div class="action-row">
           <button class="btn secondary">Speichern</button>
-          <button class="btn primary" ${listing.applicationStatus === "ready_to_send" ? "disabled" : ""}>Freigeben</button>
-          <button class="btn secondary">Bewerbung vorbereiten</button>
+          <button class="btn primary" data-action="approve" data-id="${escapeAttr(listing.id)}" ${listing.applicationStatus === "ready_to_send" ? "disabled" : ""}>Freigeben</button>
+          <button class="btn secondary" data-action="generate-letter" data-id="${escapeAttr(listing.id)}">Anschreiben generieren</button>
+          <button class="btn secondary" data-action="extract" data-id="${escapeAttr(listing.id)}">Infos aus Link</button>
           <button class="btn secondary" disabled>Als versendet markieren</button>
           <button class="btn ghost">Ignorieren</button>
         </div>
-        <div class="status-block">Keine echte Sendefunktion aktiv. Approval markiert nur ready_to_send.</div>
+        <div class="status-block">${renderScoreReasons(listing)}Keine echte Sendefunktion aktiv. Approval markiert nur ready_to_send.</div>
       </div>
     </article>
   `).join("");
+}
+
+async function runListingAction(button) {
+  const id = button.dataset.id;
+  const action = button.dataset.action;
+  if (!id || !action) return;
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = action === "generate-letter" ? "Anschreiben..." : "Läuft...";
+
+  const endpoints = {
+    extract: { path: `/api/listings/${id}/extract`, body: null },
+    "generate-letter": { path: `/api/listings/${id}/generate-letter`, body: null },
+    approve: { path: `/api/listings/${id}/review`, body: { decision: "approved" } }
+  };
+  const endpoint = endpoints[action];
+
+  try {
+    const response = await fetch(endpoint.path, {
+      method: "POST",
+      headers: endpoint.body ? { "content-type": "application/json" } : undefined,
+      body: endpoint.body ? JSON.stringify(endpoint.body) : undefined
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      result.style.color = "hsl(var(--destructive))";
+      result.textContent = payload.error ?? "Aktion fehlgeschlagen.";
+      return;
+    }
+
+    result.style.color = "hsl(var(--primary))";
+    result.textContent =
+      action === "generate-letter"
+        ? "Anschreiben generiert."
+        : action === "extract"
+          ? "Infos aus Link extrahiert und Score aktualisiert."
+          : "Freigegeben: bereit zum Senden.";
+    await loadListings();
+  } catch {
+    result.style.color = "hsl(var(--destructive))";
+    result.textContent = "API nicht erreichbar.";
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }
 
 function renderPortals() {
@@ -200,6 +258,21 @@ function renderContact(listing) {
   if (listing.contactEmail) return `<a href="mailto:${escapeAttr(listing.contactEmail)}">${escapeHtml(listing.contactEmail)}</a>`;
   if (listing.applicationUrl) return `<a href="${escapeAttr(listing.applicationUrl)}" target="_blank" rel="noreferrer">Formular ↗</a>`;
   return `<span class="meta">${escapeHtml(listing.contactMethod ?? "form")}</span>`;
+}
+
+function renderListingActions(listing) {
+  return `
+    <div class="mini-actions">
+      <button class="btn secondary compact" data-action="extract" data-id="${escapeAttr(listing.id)}">Extrahieren</button>
+      <button class="btn secondary compact" data-action="generate-letter" data-id="${escapeAttr(listing.id)}">Anschreiben</button>
+    </div>
+  `;
+}
+
+function renderScoreReasons(listing) {
+  const reasons = listing.rawData?.scoring?.reasons;
+  if (!Array.isArray(reasons) || reasons.length === 0) return "";
+  return `Score: ${reasons.map(escapeHtml).join(" · ")}<br />`;
 }
 
 function statusBadge(status) {

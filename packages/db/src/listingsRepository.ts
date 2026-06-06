@@ -146,7 +146,7 @@ export function createListingsRepository(db: Queryable) {
       const result = await db.query(
         `select *
         from listings
-        order by created_at desc`
+        order by score desc, created_at desc`
       );
 
       return result.rows.map((row) => mapListingRow(row as ListingRow));

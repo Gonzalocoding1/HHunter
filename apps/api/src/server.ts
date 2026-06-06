@@ -64,6 +64,7 @@ export type BuildApiOptions = {
   searchProfileRepository?: SearchProfileRepository;
   letterGenerator?: LetterGenerator;
   listingExtractor?: ListingExtractor;
+  autoExtractOnCreate?: boolean;
 };
 
 export function buildApi(options: BuildApiOptions = {}) {
@@ -72,6 +73,7 @@ export function buildApi(options: BuildApiOptions = {}) {
   const searchProfileRepository = options.searchProfileRepository ?? createDefaultSearchProfileRepository();
   const letterGenerator = options.letterGenerator ?? createOpenAiLetterGenerator();
   const listingExtractor = options.listingExtractor ?? createPlaywrightListingExtractor();
+  const autoExtractOnCreate = options.autoExtractOnCreate ?? options.listingsRepository === undefined;
 
   server.get("/health", async () => ({
     ok: true,
@@ -133,7 +135,29 @@ export function buildApi(options: BuildApiOptions = {}) {
       title: `Manual listing from ${sourceId}`
     });
 
-    return reply.code(201).send(listing);
+    if (!autoExtractOnCreate) {
+      return reply.code(201).send(listing);
+    }
+
+    try {
+      const extraction = await listingExtractor(listing);
+      const searchProfile = (await searchProfileRepository.getSearchProfile()) ?? defaultSearchProfile;
+      const scoring = scoreListing(extraction, searchProfile);
+      const extractedListing = await listingsRepository.updateListingExtraction(listing.id, {
+        ...extraction,
+        score: scoring.score,
+        scoreLabel: scoring.scoreLabel,
+        scoring
+      });
+
+      return reply.code(201).send(extractedListing ?? listing);
+    } catch (error) {
+      request.log.error({ error, listingId: listing.id }, "listing auto extraction failed");
+      return reply.code(201).send({
+        ...listing,
+        extractionError: error instanceof Error ? error.message : "listing extraction failed"
+      });
+    }
   });
 
   server.post<{ Params: ListingParams; Body: ReviewListingPayload }>(
@@ -164,7 +188,8 @@ export function buildApi(options: BuildApiOptions = {}) {
       return reply.code(404).send({ error: "listing not found" });
     }
 
-    const draft = await letterGenerator(listing);
+    try {
+      const draft = await letterGenerator(listing);
     const updated = await listingsRepository.saveApplicationDraft(request.params.id, draft);
 
     if (!updated) {
@@ -172,6 +197,12 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
 
     return updated;
+    } catch (error) {
+      request.log.error({ error, listingId: listing.id }, "letter generation failed");
+      return reply.code(502).send({
+        error: error instanceof Error ? error.message : "letter generation failed"
+      });
+    }
   });
 
   server.post<{ Params: ListingParams }>("/listings/:id/extract", async (request, reply) => {
@@ -314,13 +345,47 @@ function createOpenAiLetterGenerator(): LetterGenerator {
       throw new Error(`OpenAI letter generation failed with status ${response.status}`);
     }
 
-    const payload = (await response.json()) as { output_text?: unknown };
-    if (typeof payload.output_text !== "string" || payload.output_text.trim().length === 0) {
+    const payload = await response.json();
+    const outputText = extractOpenAiOutputText(payload);
+    if (!outputText) {
       throw new Error("OpenAI letter generation returned no text");
     }
 
-    return payload.output_text.trim();
+    return outputText;
   };
+}
+
+function extractOpenAiOutputText(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) {
+    return null;
+  }
+
+  const directText = (payload as { output_text?: unknown }).output_text;
+  if (typeof directText === "string" && directText.trim()) {
+    return directText.trim();
+  }
+
+  const output = (payload as { output?: unknown }).output;
+  if (!Array.isArray(output)) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  for (const item of output) {
+    if (typeof item !== "object" || item === null) continue;
+    const content = (item as { content?: unknown }).content;
+    if (!Array.isArray(content)) continue;
+
+    for (const contentItem of content) {
+      if (typeof contentItem !== "object" || contentItem === null) continue;
+      const text = (contentItem as { text?: unknown }).text;
+      if (typeof text === "string" && text.trim()) {
+        parts.push(text.trim());
+      }
+    }
+  }
+
+  return parts.length > 0 ? parts.join("\n").trim() : null;
 }
 
 function createPlaywrightListingExtractor(): ListingExtractor {

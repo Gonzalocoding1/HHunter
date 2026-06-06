@@ -218,10 +218,12 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.compact { height: 30px; padding: 0 10px; font-size: 12px; }
 .primary { background: hsl(var(--primary)); color: white; }
 .secondary { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
 .ghost { background: transparent; color: hsl(var(--muted)); }
 .danger { background: hsl(var(--destructive)); color: white; }
+.mini-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 .latest-list, .profile-list, .checklist { padding: 0 20px; }
 .latest-row, .profile-row, .checklist > div {
