@@ -116,6 +116,30 @@ test("POST /listings/:id/review rejects unknown decisions", async () => {
   });
 });
 
+test("POST /listings/:id/generate-letter prepares a German application draft", async () => {
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({
+    listingsRepository,
+    letterGenerator: async (listing) =>
+      `Sehr geehrte Damen und Herren,\n\nich interessiere mich fuer ${listing.title}.\n\nMit freundlichen Gruessen`
+  } as never);
+  const created = await listingsRepository.createListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Helle 2-Zimmer-Wohnung"
+  });
+
+  const response = await app.inject({
+    method: "POST",
+    url: `/listings/${created.id}/generate-letter`
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().applicationStatus, "prepared");
+  assert.match(response.json().applicationDraft, /Sehr geehrte Damen und Herren/);
+  assert.ok(response.json().applicationDraftGeneratedAt);
+});
+
 function createMemoryListingsRepository(): ListingsRepository {
   const listings: Listing[] = [];
 
@@ -163,6 +187,25 @@ function createMemoryListingsRepository(): ListingsRepository {
         reviewStatus: decision,
         applicationStatus: mapDecisionToApplicationStatus(decision),
         updatedAt: new Date("2026-06-06T12:05:00.000Z").toISOString()
+      };
+
+      listings[index] = updated;
+
+      return updated;
+    },
+
+    async saveApplicationDraft(id, draft) {
+      const index = listings.findIndex((listing) => listing.id === id);
+      if (index === -1) {
+        return null;
+      }
+
+      const updated: Listing & { applicationDraft: string; applicationDraftGeneratedAt: string } = {
+        ...listings[index],
+        applicationDraft: draft,
+        applicationDraftGeneratedAt: new Date("2026-06-06T12:10:00.000Z").toISOString(),
+        applicationStatus: "prepared",
+        updatedAt: new Date("2026-06-06T12:10:00.000Z").toISOString()
       };
 
       listings[index] = updated;

@@ -109,6 +109,7 @@ Fill in local secrets:
 ```env
 SCRAPERAPI_KEY=
 OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
 DATABASE_URL=postgresql://homehunter:homehunter@localhost:5432/homehunter
 API_HOST=0.0.0.0
 API_PORT=3000
@@ -154,6 +155,7 @@ Current endpoints for Bilt and future Bilt MCP integration:
 - `GET /listings`
 - `GET /listings/:id`
 - `POST /listings`
+- `POST /listings/:id/generate-letter`
 - `POST /listings/:id/review`
 
 Review payload:
@@ -169,7 +171,6 @@ Allowed decisions: `approved`, `rejected`, `reviewed`.
 Planned endpoints:
 
 - `POST /listings/:id/extract`
-- `POST /listings/:id/generate-letter`
 - `POST /listings/:id/approve`
 - `POST /listings/:id/ready-to-send`
 
@@ -195,8 +196,8 @@ Phase 1:
 - [x] Minimal listing extraction
 - [x] PostgreSQL persistence
 - [x] Bilt app reads listings and submits review decisions
-- [ ] OpenAI-generated letter draft
-- [ ] Approved listings become `ready_to_send`
+- [x] OpenAI-generated letter draft
+- [x] Approved listings become `ready_to_send`
 
 Phase 2:
 

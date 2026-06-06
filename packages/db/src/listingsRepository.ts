@@ -33,6 +33,8 @@ type ListingRow = {
   application_url: string | null;
   contact: ContactInfo | null;
   raw_data: Record<string, unknown> | null;
+  application_draft: string | null;
+  application_draft_generated_at: Date | string | null;
   review_status: Listing["reviewStatus"];
   application_status: Listing["applicationStatus"];
   created_at: Date | string;
@@ -99,6 +101,22 @@ export function createListingsRepository(db: Queryable) {
 
       const row = result.rows[0];
       return row ? mapListingRow(row as ListingRow) : null;
+    },
+
+    async saveApplicationDraft(id: string, draft: string): Promise<Listing | null> {
+      const result = await db.query(
+        `update listings
+        set application_draft = $2,
+          application_draft_generated_at = now(),
+          application_status = 'prepared',
+          updated_at = now()
+        where id = $1
+        returning *`,
+        [id, draft]
+      );
+
+      const row = result.rows[0];
+      return row ? mapListingRow(row as ListingRow) : null;
     }
   };
 }
@@ -125,6 +143,10 @@ function mapListingRow(row: ListingRow): Listing {
     ...(row.application_url === null ? {} : { applicationUrl: row.application_url }),
     ...(row.contact === null ? {} : { contact: row.contact }),
     ...(row.raw_data === null ? {} : { rawData: row.raw_data }),
+    ...(row.application_draft == null ? {} : { applicationDraft: row.application_draft }),
+    ...(row.application_draft_generated_at == null
+      ? {}
+      : { applicationDraftGeneratedAt: toIsoString(row.application_draft_generated_at) }),
     reviewStatus: row.review_status,
     applicationStatus: row.application_status,
     createdAt: toIsoString(row.created_at),

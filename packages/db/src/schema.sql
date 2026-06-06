@@ -19,6 +19,8 @@ create table if not exists listings (
   application_url text,
   contact jsonb,
   raw_data jsonb,
+  application_draft text,
+  application_draft_generated_at timestamptz,
   review_status text not null default 'new',
   application_status text not null default 'new',
   created_at timestamptz not null default now(),
@@ -28,3 +30,6 @@ create table if not exists listings (
 create unique index if not exists listings_normalized_url_idx on listings (normalized_url);
 create index if not exists listings_application_status_idx on listings (application_status);
 create index if not exists listings_status_idx on listings (status);
+
+alter table listings add column if not exists application_draft text;
+alter table listings add column if not exists application_draft_generated_at timestamptz;

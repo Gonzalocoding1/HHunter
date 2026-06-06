@@ -43,6 +43,8 @@ export type Listing = {
   applicationUrl?: string;
   contact?: ContactInfo;
   rawData?: Record<string, unknown>;
+  applicationDraft?: string;
+  applicationDraftGeneratedAt?: string;
   reviewStatus: ReviewStatus;
   applicationStatus: ApplicationStatus;
   createdAt: string;

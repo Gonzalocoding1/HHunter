@@ -26,6 +26,7 @@ API contract:
 
 - `GET /listings`
 - `GET /listings/:id`
+- `POST /listings/:id/generate-letter`
 - `POST /listings/:id/review` with `{ "decision": "approved" | "rejected" | "reviewed" }`
 
 Keep review state in the HomeHunter API. Do not create separate local-only state in the app.

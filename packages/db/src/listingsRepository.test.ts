@@ -240,3 +240,76 @@ test("updateReviewDecision maps rejected decisions to rejected application statu
   assert.equal(updated?.reviewStatus, "rejected");
   assert.equal(updated?.applicationStatus, "rejected");
 });
+
+test("saveApplicationDraft stores a prepared draft and marks listing prepared", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      return {
+        rows: [
+          {
+            id: "listing-1",
+            source_id: "kleinanzeigen",
+            source_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            normalized_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            title: "Helle Wohnung",
+            location: "Berlin",
+            price_eur: 1100,
+            rooms: 2,
+            living_area_sqm: 58,
+            floor: null,
+            equipment: [],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: null,
+            review_status: "new",
+            application_status: "prepared",
+            application_draft: "Sehr geehrte Damen und Herren",
+            application_draft_generated_at: new Date("2026-06-06T12:10:00.000Z"),
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T12:10:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const updated = await (repository as never as { saveApplicationDraft: (id: string, draft: string) => Promise<unknown> }).saveApplicationDraft(
+    "listing-1",
+    "Sehr geehrte Damen und Herren"
+  );
+
+  assert.match(queries[0].text, /update listings/i);
+  assert.deepEqual(queries[0].values, ["listing-1", "Sehr geehrte Damen und Herren"]);
+  assert.deepEqual(updated, {
+    id: "listing-1",
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    normalizedUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Helle Wohnung",
+    location: "Berlin",
+    priceEur: 1100,
+    rooms: 2,
+    livingAreaSqm: 58,
+    equipment: [],
+    score: 0,
+    scoreLabel: "Nicht bewertet",
+    status: "new",
+    contactMethod: "form",
+    reviewStatus: "new",
+    applicationStatus: "prepared",
+    applicationDraft: "Sehr geehrte Damen und Herren",
+    applicationDraftGeneratedAt: "2026-06-06T12:10:00.000Z",
+    createdAt: "2026-06-06T11:00:00.000Z",
+    updatedAt: "2026-06-06T12:10:00.000Z"
+  });
+});

@@ -27,15 +27,20 @@ export type ListingsRepository = {
   listListings: () => Promise<Listing[]>;
   getListingById: (id: string) => Promise<Listing | null>;
   updateReviewDecision: (id: string, decision: ReviewDecision) => Promise<Listing | null>;
+  saveApplicationDraft: (id: string, draft: string) => Promise<Listing | null>;
 };
+
+export type LetterGenerator = (listing: Listing) => Promise<string>;
 
 export type BuildApiOptions = {
   listingsRepository?: ListingsRepository;
+  letterGenerator?: LetterGenerator;
 };
 
 export function buildApi(options: BuildApiOptions = {}) {
   const server = Fastify({ logger: true });
   const listingsRepository = options.listingsRepository ?? createDefaultListingsRepository();
+  const letterGenerator = options.letterGenerator ?? createOpenAiLetterGenerator();
 
   server.get("/health", async () => ({
     ok: true,
@@ -96,6 +101,23 @@ export function buildApi(options: BuildApiOptions = {}) {
     }
   );
 
+  server.post<{ Params: ListingParams }>("/listings/:id/generate-letter", async (request, reply) => {
+    const listing = await listingsRepository.getListingById(request.params.id);
+
+    if (!listing) {
+      return reply.code(404).send({ error: "listing not found" });
+    }
+
+    const draft = await letterGenerator(listing);
+    const updated = await listingsRepository.saveApplicationDraft(request.params.id, draft);
+
+    if (!updated) {
+      return reply.code(404).send({ error: "listing not found" });
+    }
+
+    return updated;
+  });
+
   return server;
 }
 
@@ -116,6 +138,70 @@ function createDefaultListingsRepository(): ListingsRepository {
 
   const pool = new pg.Pool({ connectionString });
   return createListingsRepository(pool);
+}
+
+function createOpenAiLetterGenerator(): LetterGenerator {
+  return async (listing) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is required to generate application letters");
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content:
+              "Du schreibst praezise, freundliche deutsche Wohnungsbewerbungen. Keine erfundenen Fakten. Keine Versandbestaetigung."
+          },
+          {
+            role: "user",
+            content: buildLetterPrompt(listing)
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI letter generation failed with status ${response.status}`);
+    }
+
+    const payload = (await response.json()) as { output_text?: unknown };
+    if (typeof payload.output_text !== "string" || payload.output_text.trim().length === 0) {
+      throw new Error("OpenAI letter generation returned no text");
+    }
+
+    return payload.output_text.trim();
+  };
+}
+
+function buildLetterPrompt(listing: Listing): string {
+  return [
+    "Erstelle ein kurzes Anschreiben fuer diese Wohnung.",
+    "Der Text soll mit einer passenden deutschen Anrede beginnen und mit einer neutralen Grussformel enden.",
+    "Nutze nur die vorhandenen Inseratsdaten.",
+    "",
+    `Titel: ${listing.title}`,
+    listing.location ? `Lage: ${listing.location}` : null,
+    listing.priceEur ? `Preis: ${listing.priceEur} EUR` : null,
+    listing.rooms ? `Zimmer: ${listing.rooms}` : null,
+    listing.livingAreaSqm ? `Wohnflaeche: ${listing.livingAreaSqm} qm` : null,
+    listing.floor ? `Etage: ${listing.floor}` : null,
+    listing.equipment?.length ? `Ausstattung: ${listing.equipment.join(", ")}` : null,
+    listing.contact?.name ? `Kontaktperson: ${listing.contact.name}` : null,
+    listing.contact?.company ? `Firma: ${listing.contact.company}` : null,
+    `Quelle: ${listing.sourceUrl}`
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }
 
 function parseSourceUrl(value: unknown): string | null {
