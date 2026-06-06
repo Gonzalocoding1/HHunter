@@ -1,4 +1,4 @@
-import type { SourceId } from "@homehunter/core";
+import type { ContactInfo, SourceId } from "@homehunter/core";
 
 export type ExtractListingInput = {
   sourceId: SourceId;
@@ -17,6 +17,7 @@ export type ExtractedListing = {
   rooms?: number;
   floor?: string;
   equipment: string[];
+  contact?: ContactInfo;
   rawText: string;
 };
 
@@ -45,6 +46,7 @@ export function extractListing(input: ExtractListingInput): ExtractedListing {
     rooms: extractNumberBeforeLabel(text, /zimmer/i),
     floor: extractFloor(text),
     equipment: extractEquipment(text),
+    contact: extractContact(text),
     rawText: input.text
   };
 }
@@ -116,6 +118,69 @@ function extractFloor(text: string): string | undefined {
   const match = text.match(/\b(?:etage|geschoss)\s*[:\-]?\s*([A-Za-zÄÖÜäöüß0-9. \-]+)/i);
 
   return match?.[1]?.trim();
+}
+
+function extractContact(text: string): ContactInfo | undefined {
+  const contact: ContactInfo = {};
+  const email = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0];
+  const phone = extractLabeledValue(text, /\b(?:telefon|tel\.?|mobil)\b/i);
+  const name = extractLabeledValue(text, /(?:kontaktperson|ansprechpartner(?:in)?)/i);
+  const company = extractCompany(text);
+  const contactFormUrl = extractLabeledUrl(text, /kontaktformular/i);
+
+  if (name) {
+    contact.name = name;
+  }
+
+  if (company) {
+    contact.company = company;
+  }
+
+  if (phone) {
+    contact.phone = phone;
+  }
+
+  if (email) {
+    contact.email = email;
+  }
+
+  if (contactFormUrl) {
+    contact.contactFormUrl = contactFormUrl;
+  }
+
+  return Object.keys(contact).length > 0 ? contact : undefined;
+}
+
+function extractLabeledValue(text: string, label: RegExp): string | undefined {
+  const lines = text.split("\n");
+
+  for (const line of lines) {
+    if (!label.test(line)) {
+      continue;
+    }
+
+    const value = line.replace(label, "").replace(/^[\s:.-]+/, "").trim();
+    return value || undefined;
+  }
+
+  return undefined;
+}
+
+function extractLabeledUrl(text: string, label: RegExp): string | undefined {
+  const value = extractLabeledValue(text, label);
+
+  return value?.match(/https?:\/\/\S+/i)?.[0];
+}
+
+function extractCompany(text: string): string | undefined {
+  const lines = text.split("\n");
+  const providerIndex = lines.findIndex((line) => /^anbieter$/i.test(line.trim()));
+
+  if (providerIndex >= 0) {
+    return lines[providerIndex + 1]?.trim() || undefined;
+  }
+
+  return extractLabeledValue(text, /(?:anbieter|firma|unternehmen)/i);
 }
 
 function parseGermanNumber(value: string): number | undefined {

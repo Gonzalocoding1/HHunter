@@ -338,10 +338,16 @@ test("updateListingExtraction stores extracted listing details without changing 
             score_label: "Nicht bewertet",
             duplicate_of_id: null,
             status: "new",
-            contact_method: "form",
-            contact_email: null,
-            application_url: null,
-            contact: null,
+            contact_method: "email",
+            contact_email: "maria.becker@example.com",
+            application_url: "https://www.kleinanzeigen.de/s-kontakt/demo/123",
+            contact: {
+              name: "Maria Becker",
+              company: "Muster Immobilien GmbH",
+              phone: "+49 221 1234567",
+              email: "maria.becker@example.com",
+              contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+            },
             raw_data: { extraction: { statusCode: 200 } },
             application_draft: null,
             application_draft_generated_at: null,
@@ -368,6 +374,13 @@ test("updateListingExtraction stores extracted listing details without changing 
           livingAreaSqm?: number;
           floor?: string;
           equipment: string[];
+          contact?: {
+            name?: string;
+            company?: string;
+            phone?: string;
+            email?: string;
+            contactFormUrl?: string;
+          };
           rawData: Record<string, unknown>;
         }
       ) => Promise<unknown>;
@@ -380,6 +393,13 @@ test("updateListingExtraction stores extracted listing details without changing 
     livingAreaSqm: 61,
     floor: "3",
     equipment: ["Balkon", "Keller"],
+    contact: {
+      name: "Maria Becker",
+      company: "Muster Immobilien GmbH",
+      phone: "+49 221 1234567",
+      email: "maria.becker@example.com",
+      contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+    },
     rawData: { statusCode: 200 }
   });
 
@@ -393,6 +413,16 @@ test("updateListingExtraction stores extracted listing details without changing 
     61,
     "3",
     ["Balkon", "Keller"],
+    "email",
+    "maria.becker@example.com",
+    "https://www.kleinanzeigen.de/s-kontakt/demo/123",
+    {
+      name: "Maria Becker",
+      company: "Muster Immobilien GmbH",
+      phone: "+49 221 1234567",
+      email: "maria.becker@example.com",
+      contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+    },
     JSON.stringify({ statusCode: 200 })
   ]);
   assert.deepEqual(updated, {
@@ -410,7 +440,16 @@ test("updateListingExtraction stores extracted listing details without changing 
     score: 0,
     scoreLabel: "Nicht bewertet",
     status: "new",
-    contactMethod: "form",
+    contactMethod: "email",
+    contactEmail: "maria.becker@example.com",
+    applicationUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123",
+    contact: {
+      name: "Maria Becker",
+      company: "Muster Immobilien GmbH",
+      phone: "+49 221 1234567",
+      email: "maria.becker@example.com",
+      contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+    },
     rawData: { extraction: { statusCode: 200 } },
     reviewStatus: "new",
     applicationStatus: "new",

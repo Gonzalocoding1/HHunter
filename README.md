@@ -39,7 +39,7 @@ Out of scope for today:
    The worker scrapes the listing page and extracts fields such as title, location, price, rooms, living area, floor, equipment, availability, source URL and raw page snapshot.
 
 3. `Enrich Contact`
-   If the listing names a contact person or company, HomeHunter stores public contact data found in the listing or officially linked public pages, such as phone number, email address or contact form URL.
+   If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL.
 
 4. `Generate Letter`
    OpenAI generates a German application letter tailored to the listing, the contact person and the user profile. The API key is read from `.env` as `OPENAI_API_KEY`.
@@ -204,6 +204,7 @@ Phase 2:
 
 - [ ] Better duplicate detection
 - [ ] Relevance scoring
+- [x] Contact enrichment from listing text
 - [ ] Contact enrichment quality checks
 - [ ] Source-specific parsers
 - [ ] Background scheduling

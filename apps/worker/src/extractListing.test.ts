@@ -88,3 +88,27 @@ test("extractListing extracts floor information", () => {
 
   assert.equal(result.floor, "3");
 });
+
+test("extractListing extracts public contact details from listing text", () => {
+  const result = extractListing({
+    sourceId: "immobilie1",
+    sourceUrl: "https://anbieter.immobilie1.de/expose/demo",
+    title: "Wohnung mit Kontakt",
+    text: [
+      "Anbieter",
+      "Muster Immobilien GmbH",
+      "Kontaktperson: Maria Becker",
+      "Telefon: +49 221 1234567",
+      "E-Mail: maria.becker@example.com",
+      "Kontaktformular: https://anbieter.immobilie1.de/kontakt/demo"
+    ].join("\n")
+  });
+
+  assert.deepEqual(result.contact, {
+    name: "Maria Becker",
+    company: "Muster Immobilien GmbH",
+    phone: "+49 221 1234567",
+    email: "maria.becker@example.com",
+    contactFormUrl: "https://anbieter.immobilie1.de/kontakt/demo"
+  });
+});

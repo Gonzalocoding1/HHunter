@@ -152,6 +152,13 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
       livingAreaSqm: 61,
       floor: "3",
       equipment: ["Balkon", "Keller"],
+      contact: {
+        name: "Maria Becker",
+        company: "Muster Immobilien GmbH",
+        phone: "+49 221 1234567",
+        email: "maria.becker@example.com",
+        contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+      },
       rawData: {
         sourceUrl: listing.sourceUrl,
         fetchedAt: "2026-06-06T12:15:00.000Z",
@@ -179,6 +186,16 @@ test("POST /listings/:id/extract fetches, extracts and stores listing details", 
   assert.equal(response.json().livingAreaSqm, 61);
   assert.equal(response.json().floor, "3");
   assert.deepEqual(response.json().equipment, ["Balkon", "Keller"]);
+  assert.equal(response.json().contactMethod, "email");
+  assert.equal(response.json().contactEmail, "maria.becker@example.com");
+  assert.equal(response.json().applicationUrl, "https://www.kleinanzeigen.de/s-kontakt/demo/123");
+  assert.deepEqual(response.json().contact, {
+    name: "Maria Becker",
+    company: "Muster Immobilien GmbH",
+    phone: "+49 221 1234567",
+    email: "maria.becker@example.com",
+    contactFormUrl: "https://www.kleinanzeigen.de/s-kontakt/demo/123"
+  });
   assert.equal(response.json().applicationStatus, "new");
 });
 
@@ -264,6 +281,9 @@ function createMemoryListingsRepository(): ListingsRepository {
       const updated: Listing = {
         ...listings[index],
         ...extraction,
+        contactMethod: inferContactMethod(extraction.contact),
+        contactEmail: extraction.contact?.email,
+        applicationUrl: extraction.contact?.contactFormUrl,
         rawData: {
           ...listings[index].rawData,
           extraction: extraction.rawData
@@ -288,4 +308,16 @@ function mapDecisionToApplicationStatus(decision: "approved" | "rejected" | "rev
   }
 
   return "reviewed";
+}
+
+function inferContactMethod(contact: Listing["contact"]): Listing["contactMethod"] {
+  if (contact?.email) {
+    return "email";
+  }
+
+  if (contact?.contactFormUrl) {
+    return "form";
+  }
+
+  return "external";
 }

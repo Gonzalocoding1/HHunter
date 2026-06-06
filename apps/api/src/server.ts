@@ -219,6 +219,7 @@ function createPlaywrightListingExtractor(): ListingExtractor {
       livingAreaSqm: extracted.livingAreaSqm,
       floor: extracted.floor,
       equipment: extracted.equipment,
+      contact: extracted.contact,
       rawData: {
         fetchedAt: page.fetchedAt,
         finalUrl: page.finalUrl,

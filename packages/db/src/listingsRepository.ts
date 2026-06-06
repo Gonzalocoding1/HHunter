@@ -20,6 +20,7 @@ export type UpdateListingExtractionInput = {
   livingAreaSqm?: number;
   floor?: string;
   equipment: string[];
+  contact?: ContactInfo;
   rawData: Record<string, unknown>;
 };
 
@@ -140,7 +141,11 @@ export function createListingsRepository(db: Queryable) {
           living_area_sqm = $6,
           floor = $7,
           equipment = $8,
-          raw_data = jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $9::jsonb, true),
+          contact_method = $9,
+          contact_email = $10,
+          application_url = $11,
+          contact = $12,
+          raw_data = jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $13::jsonb, true),
           updated_at = now()
         where id = $1
         returning *`,
@@ -153,6 +158,10 @@ export function createListingsRepository(db: Queryable) {
           extraction.livingAreaSqm ?? null,
           extraction.floor ?? null,
           extraction.equipment,
+          inferContactMethod(extraction.contact),
+          extraction.contact?.email ?? null,
+          extraction.contact?.contactFormUrl ?? null,
+          extraction.contact ?? null,
           JSON.stringify(extraction.rawData)
         ]
       );
@@ -161,6 +170,22 @@ export function createListingsRepository(db: Queryable) {
       return row ? mapListingRow(row as ListingRow) : null;
     }
   };
+}
+
+function inferContactMethod(contact: ContactInfo | undefined): Listing["contactMethod"] {
+  if (!contact) {
+    return "form";
+  }
+
+  if (contact?.email) {
+    return "email";
+  }
+
+  if (contact?.contactFormUrl) {
+    return "form";
+  }
+
+  return "external";
 }
 
 function mapListingRow(row: ListingRow): Listing {
