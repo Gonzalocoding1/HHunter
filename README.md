@@ -170,26 +170,27 @@ Secrets are never committed. `.env` is ignored by git. `.env.example` documents 
 
 Phase 1:
 
-- manual URL ingestion
-- basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
-- minimal listing extraction
-- PostgreSQL persistence
-- Bilt app reads listings and submits review decisions
-- OpenAI-generated letter draft
-- approved listings become `ready_to_send`
+- [x] Monorepo, Codespaces onboarding and collaboration boundaries
+- [ ] Manual URL ingestion
+- [ ] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
+- [ ] Minimal listing extraction
+- [ ] PostgreSQL persistence
+- [ ] Bilt app reads listings and submits review decisions
+- [ ] OpenAI-generated letter draft
+- [ ] Approved listings become `ready_to_send`
 
 Phase 2:
 
-- better duplicate detection
-- relevance scoring
-- contact enrichment quality checks
-- source-specific parsers
-- background scheduling
-- full status timeline
+- [ ] Better duplicate detection
+- [ ] Relevance scoring
+- [ ] Contact enrichment quality checks
+- [ ] Source-specific parsers
+- [ ] Background scheduling
+- [ ] Full status timeline
 
 Phase 3:
 
-- controlled send adapters
-- stronger audit logs
-- production deployment
-- auth and user settings
+- [ ] Controlled send adapters
+- [ ] Stronger audit logs
+- [ ] Production deployment
+- [ ] Auth and user settings
