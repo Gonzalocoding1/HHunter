@@ -120,6 +120,12 @@ Start PostgreSQL:
 docker compose up -d postgres
 ```
 
+Apply the initial schema:
+
+```bash
+docker compose exec -T postgres psql -U homehunter -d homehunter < packages/db/src/schema.sql
+```
+
 Start the API:
 
 ```bash
@@ -174,7 +180,7 @@ Phase 1:
 - [x] Manual URL ingestion
 - [x] Basic Playwright fetch for `kleinanzeigen.de` and `immobilie1.de`
 - [x] Minimal listing extraction
-- [ ] PostgreSQL persistence
+- [x] PostgreSQL persistence
 - [ ] Bilt app reads listings and submits review decisions
 - [ ] OpenAI-generated letter draft
 - [ ] Approved listings become `ready_to_send`

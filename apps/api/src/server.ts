@@ -1,14 +1,25 @@
 import Fastify from "fastify";
 import { applicationStatuses, type Listing, reviewStatuses } from "@homehunter/core";
+import { createListingsRepository, type CreateListingInput } from "@homehunter/db";
 import { detectSourceId } from "@homehunter/sources";
+import pg from "pg";
 
 type CreateListingPayload = {
   sourceUrl?: unknown;
 };
 
-export function buildApi() {
+export type ListingsRepository = {
+  createListing: (input: CreateListingInput) => Promise<Listing>;
+  listListings: () => Promise<Listing[]>;
+};
+
+export type BuildApiOptions = {
+  listingsRepository?: ListingsRepository;
+};
+
+export function buildApi(options: BuildApiOptions = {}) {
   const server = Fastify({ logger: true });
-  const listings: Listing[] = [];
+  const listingsRepository = options.listingsRepository ?? createDefaultListingsRepository();
 
   server.get("/health", async () => ({
     ok: true,
@@ -17,7 +28,7 @@ export function buildApi() {
     applicationStatuses
   }));
 
-  server.get("/listings", async () => listings);
+  server.get("/listings", async () => listingsRepository.listListings());
 
   server.post<{ Body: CreateListingPayload }>("/listings", async (request, reply) => {
     const sourceUrl = parseSourceUrl(request.body?.sourceUrl);
@@ -28,25 +39,28 @@ export function buildApi() {
       });
     }
 
-    const now = new Date().toISOString();
     const sourceId = detectSourceId(sourceUrl);
-    const listing: Listing = {
-      id: crypto.randomUUID(),
+    const listing = await listingsRepository.createListing({
       sourceId,
       sourceUrl,
-      title: `Manual listing from ${sourceId}`,
-      reviewStatus: "new",
-      applicationStatus: "new",
-      createdAt: now,
-      updatedAt: now
-    };
-
-    listings.push(listing);
+      title: `Manual listing from ${sourceId}`
+    });
 
     return reply.code(201).send(listing);
   });
 
   return server;
+}
+
+function createDefaultListingsRepository(): ListingsRepository {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is required when no listingsRepository is provided");
+  }
+
+  const pool = new pg.Pool({ connectionString });
+  return createListingsRepository(pool);
 }
 
 function parseSourceUrl(value: unknown): string | null {

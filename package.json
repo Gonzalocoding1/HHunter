@@ -11,6 +11,7 @@
     "dev:api": "npm run dev -w apps/api",
     "dev:worker": "npm run dev -w apps/worker",
     "test:api": "tsx --test apps/api/src/*.test.ts",
+    "test:db": "tsx --test packages/db/src/*.test.ts",
     "test:worker": "tsx --test apps/worker/src/*.test.ts",
     "test:smoke": "playwright test tests/portals.smoke.spec.js --reporter=line"
   },

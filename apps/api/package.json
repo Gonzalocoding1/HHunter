@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@homehunter/core": "0.1.0",
+    "@homehunter/db": "0.1.0",
     "@homehunter/sources": "0.1.0",
     "fastify": "^5.6.2"
   },

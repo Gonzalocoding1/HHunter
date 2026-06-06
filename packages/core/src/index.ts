@@ -10,9 +10,13 @@ export const applicationStatuses = [
   "rejected",
   "archived"
 ] as const;
+export const listingStatuses = ["new", "ignored", "duplicate", "error"] as const;
+export const contactMethods = ["form", "email", "external"] as const;
 
 export type ReviewStatus = (typeof reviewStatuses)[number];
 export type ApplicationStatus = (typeof applicationStatuses)[number];
+export type ListingStatus = (typeof listingStatuses)[number];
+export type ContactMethod = (typeof contactMethods)[number];
 
 export type SourceId = "kleinanzeigen" | "immobilie1" | "immowelt" | "immoscout24" | "manual";
 
@@ -20,6 +24,7 @@ export type Listing = {
   id: string;
   sourceId: SourceId;
   sourceUrl: string;
+  normalizedUrl: string;
   title: string;
   location?: string;
   priceEur?: number;
@@ -27,7 +32,15 @@ export type Listing = {
   livingAreaSqm?: number;
   floor?: string;
   equipment?: string[];
+  score: number;
+  scoreLabel: string;
+  duplicateOfId?: string;
+  status: ListingStatus;
+  contactMethod: ContactMethod;
+  contactEmail?: string;
+  applicationUrl?: string;
   contact?: ContactInfo;
+  rawData?: Record<string, unknown>;
   reviewStatus: ReviewStatus;
   applicationStatus: ApplicationStatus;
   createdAt: string;

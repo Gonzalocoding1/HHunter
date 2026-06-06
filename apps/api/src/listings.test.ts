@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildApi } from "./server.ts";
+import type { Listing } from "@homehunter/core";
+import { buildApi, type ListingsRepository } from "./server.ts";
 
 test("POST /listings stores a manually submitted immobilie1 URL", async () => {
-  const app = buildApi();
+  const listingsRepository = createMemoryListingsRepository();
+  const app = buildApi({ listingsRepository });
 
   const createResponse = await app.inject({
     method: "POST",
@@ -35,7 +37,7 @@ test("POST /listings stores a manually submitted immobilie1 URL", async () => {
 });
 
 test("POST /listings rejects invalid URLs", async () => {
-  const app = buildApi();
+  const app = buildApi({ listingsRepository: createMemoryListingsRepository() });
 
   const response = await app.inject({
     method: "POST",
@@ -50,3 +52,37 @@ test("POST /listings rejects invalid URLs", async () => {
     error: "sourceUrl must be a valid http or https URL"
   });
 });
+
+function createMemoryListingsRepository(): ListingsRepository {
+  const listings: Listing[] = [];
+
+  return {
+    async createListing(input) {
+      const now = new Date("2026-06-06T12:00:00.000Z").toISOString();
+      const listing: Listing = {
+        id: `listing-${listings.length + 1}`,
+        sourceId: input.sourceId,
+        sourceUrl: input.sourceUrl,
+        normalizedUrl: input.sourceUrl,
+        title: input.title,
+        score: 0,
+        scoreLabel: "Nicht bewertet",
+        status: "new",
+        contactMethod: "form",
+        rawData: input.rawData ?? { source: "manual" },
+        reviewStatus: "new",
+        applicationStatus: "new",
+        createdAt: now,
+        updatedAt: now
+      };
+
+      listings.push(listing);
+
+      return listing;
+    },
+
+    async listListings() {
+      return listings;
+    }
+  };
+}
