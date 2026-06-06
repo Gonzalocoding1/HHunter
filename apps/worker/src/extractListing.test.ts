@@ -113,6 +113,41 @@ test("extractListing extracts public contact details from listing text", () => {
   });
 });
 
+test("extractListing ignores portal support emails and invalid phone labels", () => {
+  const result = extractListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Wohnung mit Portaltext",
+    text: [
+      "Bei Fragen hilft support@kleinanzeigen.de",
+      "Telefon: nicht angegeben",
+      "Kontaktperson: Anbieter kontaktieren"
+    ].join("\n")
+  });
+
+  assert.equal(result.contact, undefined);
+});
+
+test("extractListing keeps valid contact values while dropping noisy values", () => {
+  const result = extractListing({
+    sourceId: "immobilie1",
+    sourceUrl: "https://anbieter.immobilie1.de/expose/demo",
+    title: "Wohnung mit gemischten Kontaktdaten",
+    text: [
+      "support@immobilie1.de",
+      "Kontaktperson: Julia Schneider",
+      "Telefon: +49 221 123 45 67",
+      "E-Mail: julia.schneider@makler-koeln.de"
+    ].join("\n")
+  });
+
+  assert.deepEqual(result.contact, {
+    name: "Julia Schneider",
+    phone: "+49 221 123 45 67",
+    email: "julia.schneider@makler-koeln.de"
+  });
+});
+
 test("extractListing uses immobilie1-specific labels before generic extraction", () => {
   const result = extractListing({
     sourceId: "immobilie1",

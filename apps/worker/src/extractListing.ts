@@ -196,9 +196,9 @@ function extractFloor(text: string): string | undefined {
 
 function extractContact(text: string): ContactInfo | undefined {
   const contact: ContactInfo = {};
-  const email = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0];
-  const phone = extractLabeledValue(text, /\b(?:telefon|tel\.?|mobil)\b/i);
-  const name = extractLabeledValue(text, /(?:kontaktperson|ansprechpartner(?:in)?)/i);
+  const email = extractContactEmail(text);
+  const phone = normalizePhone(extractLabeledValue(text, /\b(?:telefon|tel\.?|mobil)\b/i));
+  const name = normalizeContactName(extractLabeledValue(text, /\b(?:kontaktperson|ansprechpartner(?:in)?)\b/i));
   const company = extractCompany(text);
   const contactFormUrl = extractLabeledUrl(text, /kontaktformular/i);
 
@@ -238,6 +238,59 @@ function extractLabeledValue(text: string, label: RegExp): string | undefined {
   }
 
   return undefined;
+}
+
+function extractContactEmail(text: string): string | undefined {
+  const labeledEmail = extractLabeledValue(text, /\b(?:e-mail|email|mail)\b/i);
+  const labeledEmailMatch = labeledEmail?.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0];
+
+  if (labeledEmailMatch && isAllowedContactEmail(labeledEmailMatch)) {
+    return labeledEmailMatch;
+  }
+
+  return [...text.matchAll(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi)]
+    .map((match) => match[0])
+    .find(isAllowedContactEmail);
+}
+
+function isAllowedContactEmail(email: string): boolean {
+  const lowerEmail = email.toLowerCase();
+  const localPart = lowerEmail.split("@")[0] ?? "";
+
+  if (/^(?:support|hilfe|info|service|noreply|no-reply|datenschutz|privacy)$/.test(localPart)) {
+    return false;
+  }
+
+  return !/(?:kleinanzeigen|immobilie1|immowelt|immobilienscout24|immoscout24)\.de$/.test(lowerEmail);
+}
+
+function normalizePhone(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const phone = value.trim();
+  const digitCount = (phone.match(/\d/g) ?? []).length;
+
+  if (digitCount < 7 || /(?:nicht angegeben|keine angabe|auf anfrage|anbieter kontaktieren)/i.test(phone)) {
+    return undefined;
+  }
+
+  return /^[+()\d\s./-]+$/.test(phone) ? phone : undefined;
+}
+
+function normalizeContactName(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const name = value.trim();
+
+  if (/^(?:anbieter kontaktieren|kontakt aufnehmen|nicht angegeben|keine angabe|privat)$/i.test(name)) {
+    return undefined;
+  }
+
+  return /\p{L}/u.test(name) ? name : undefined;
 }
 
 function extractValueAfterLabel(text: string, label: RegExp): string | undefined {
@@ -288,13 +341,22 @@ function extractLabeledUrl(text: string, label: RegExp): string | undefined {
 
 function extractCompany(text: string): string | undefined {
   const lines = text.split("\n");
-  const providerIndex = lines.findIndex((line) => /^anbieter$/i.test(line.trim()));
 
-  if (providerIndex >= 0) {
-    return lines[providerIndex + 1]?.trim() || undefined;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    const labelOnly = line.match(/^(?:anbieter|firma|unternehmen)$/i);
+    const inlineLabel = line.match(/^(?:anbieter|firma|unternehmen)\s*[:.-]\s*(.+)$/i);
+
+    if (labelOnly) {
+      return lines[index + 1]?.trim() || undefined;
+    }
+
+    if (inlineLabel?.[1]) {
+      return inlineLabel[1].trim();
+    }
   }
 
-  return extractLabeledValue(text, /(?:anbieter|firma|unternehmen)/i);
+  return undefined;
 }
 
 function parseGermanNumber(value: string): number | undefined {
