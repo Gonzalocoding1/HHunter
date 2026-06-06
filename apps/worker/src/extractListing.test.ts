@@ -112,3 +112,76 @@ test("extractListing extracts public contact details from listing text", () => {
     contactFormUrl: "https://anbieter.immobilie1.de/kontakt/demo"
   });
 });
+
+test("extractListing uses immobilie1-specific labels before generic extraction", () => {
+  const result = extractListing({
+    sourceId: "immobilie1",
+    sourceUrl: "https://anbieter.immobilie1.de/expose/demo",
+    title: "Wohnung direkt am Park",
+    text: [
+      "Wohnung direkt am Park",
+      "Adresse",
+      "50667 Köln",
+      "Kaltmiete",
+      "1.480 €",
+      "Wohnfläche ca.",
+      "72,5 m²",
+      "Anzahl Zimmer",
+      "2,5",
+      "Etage",
+      "2. OG",
+      "Ausstattung",
+      "Balkon, Aufzug, Einbauküche"
+    ].join("\n")
+  });
+
+  assert.equal(result.location, "50667 Köln");
+  assert.equal(result.priceEur, 1480);
+  assert.equal(result.livingAreaSqm, 72.5);
+  assert.equal(result.rooms, 2.5);
+  assert.equal(result.floor, "2. OG");
+  assert.deepEqual(result.equipment, ["Balkon", "Aufzug", "Einbauküche"]);
+});
+
+test("extractListing uses kleinanzeigen-specific compact detail rows", () => {
+  const result = extractListing({
+    sourceId: "kleinanzeigen",
+    sourceUrl: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+    title: "Ruhige Wohnung in Köln",
+    text: [
+      "Ruhige Wohnung in Köln",
+      "Ort",
+      "50825 Ehrenfeld",
+      "Kaltmiete",
+      "980 €",
+      "Wohnfläche",
+      "58 m²",
+      "Zimmer",
+      "2",
+      "Etage",
+      "1",
+      "Ausstattung: Balkon, Keller"
+    ].join("\n")
+  });
+
+  assert.equal(result.location, "50825 Ehrenfeld");
+  assert.equal(result.priceEur, 980);
+  assert.equal(result.livingAreaSqm, 58);
+  assert.equal(result.rooms, 2);
+  assert.equal(result.floor, "1");
+  assert.deepEqual(result.equipment, ["Balkon", "Keller"]);
+});
+
+test("extractListing keeps the generic parser as fallback for manual sources", () => {
+  const result = extractListing({
+    sourceId: "manual",
+    sourceUrl: "https://example.com/listing",
+    title: "Fallback Wohnung",
+    text: "Fallback Wohnung\nWohnfläche 61 m²\n2 Zimmer\n1.100 €\nBalkon"
+  });
+
+  assert.equal(result.priceEur, 1100);
+  assert.equal(result.livingAreaSqm, 61);
+  assert.equal(result.rooms, 2);
+  assert.deepEqual(result.equipment, ["Balkon"]);
+});

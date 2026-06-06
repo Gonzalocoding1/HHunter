@@ -36,7 +36,7 @@ Out of scope for today:
    Listings can be added manually by URL. Automated discovery is planned, but does not need to work for the first demo.
 
 2. `Extract Details`
-   The worker scrapes the listing page and extracts fields such as title, location, price, rooms, living area, floor, equipment, availability, source URL and raw page snapshot.
+   The worker scrapes the listing page and extracts fields such as title, location, price, rooms, living area, floor, equipment, availability, source URL and raw page snapshot. `immobilie1.de` and `kleinanzeigen.de` use source-specific parser rules with the generic parser as fallback.
 
 3. `Enrich Contact`
    If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL.
@@ -214,7 +214,7 @@ Phase 2:
 - [x] User/search profile configuration
 - [x] Contact enrichment from listing text
 - [ ] Contact enrichment quality checks
-- [ ] Source-specific parsers
+- [x] Source-specific parsers
 - [ ] Background scheduling
 - [x] Status timeline / audit log
 

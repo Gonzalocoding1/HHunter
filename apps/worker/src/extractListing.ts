@@ -35,7 +35,18 @@ const equipmentTerms = [
 
 export function extractListing(input: ExtractListingInput): ExtractedListing {
   const text = normalizeText(input.text);
+  const genericListing = extractGenericListing(input, text);
+  const sourceListing = extractSourceSpecificListing(input.sourceId, text);
 
+  return {
+    ...genericListing,
+    ...withoutUndefined(sourceListing),
+    equipment: mergeEquipment(sourceListing.equipment, genericListing.equipment),
+    contact: mergeContact(sourceListing.contact, genericListing.contact)
+  };
+}
+
+function extractGenericListing(input: ExtractListingInput, text: string): ExtractedListing {
   return {
     sourceId: input.sourceId,
     sourceUrl: input.sourceUrl,
@@ -48,6 +59,42 @@ export function extractListing(input: ExtractListingInput): ExtractedListing {
     equipment: extractEquipment(text),
     contact: extractContact(text),
     rawText: input.text
+  };
+}
+
+function extractSourceSpecificListing(sourceId: SourceId, text: string): Partial<ExtractedListing> {
+  if (sourceId === "immobilie1") {
+    return extractImmobilie1Listing(text);
+  }
+
+  if (sourceId === "kleinanzeigen") {
+    return extractKleinanzeigenListing(text);
+  }
+
+  return {};
+}
+
+function extractImmobilie1Listing(text: string): Partial<ExtractedListing> {
+  return {
+    location: extractValueAfterLabel(text, /^adresse$/i) ?? extractLocation(text),
+    priceEur: extractEuroAfterLabel(text, /^kaltmiete$/i) ?? extractEuroAfterLabel(text, /^miete$/i),
+    livingAreaSqm: extractAreaAfterLabel(text, /^wohnfläche(?:\s+ca\.)?$/i),
+    rooms: extractNumberAfterLabel(text, /^(?:anzahl\s+)?zimmer$/i),
+    floor: extractValueAfterLabel(text, /^etage$/i),
+    equipment: extractEquipment(extractValueAfterLabel(text, /^ausstattung$/i) ?? text),
+    contact: extractContact(text)
+  };
+}
+
+function extractKleinanzeigenListing(text: string): Partial<ExtractedListing> {
+  return {
+    location: extractValueAfterLabel(text, /^ort$/i) ?? extractLocation(text),
+    priceEur: extractEuroAfterLabel(text, /^kaltmiete$/i) ?? extractEuroAfterLabel(text, /^miete$/i),
+    livingAreaSqm: extractAreaAfterLabel(text, /^wohnfläche$/i),
+    rooms: extractNumberAfterLabel(text, /^zimmer$/i),
+    floor: extractValueAfterLabel(text, /^etage$/i),
+    equipment: extractEquipment(extractValueAfterLabel(text, /^ausstattung$/i) ?? text),
+    contact: extractContact(text)
   };
 }
 
@@ -75,6 +122,33 @@ function extractEquipment(text: string): string[] {
     .filter((match) => match.index >= 0)
     .sort((left, right) => left.index - right.index)
     .map((match) => match.term);
+}
+
+function mergeEquipment(primary?: string[], fallback: string[] = []): string[] {
+  const merged: string[] = [];
+
+  for (const term of [...(primary ?? []), ...fallback]) {
+    if (!merged.includes(term)) {
+      merged.push(term);
+    }
+  }
+
+  return merged;
+}
+
+function mergeContact(primary?: ContactInfo, fallback?: ContactInfo): ContactInfo | undefined {
+  const contact = {
+    ...fallback,
+    ...primary
+  };
+
+  return Object.keys(contact).length > 0 ? contact : undefined;
+}
+
+function withoutUndefined(listing: Partial<ExtractedListing>): Partial<ExtractedListing> {
+  return Object.fromEntries(
+    Object.entries(listing).filter(([, value]) => value !== undefined)
+  ) as Partial<ExtractedListing>;
 }
 
 function extractEuroPrice(text: string): number | undefined {
@@ -164,6 +238,46 @@ function extractLabeledValue(text: string, label: RegExp): string | undefined {
   }
 
   return undefined;
+}
+
+function extractValueAfterLabel(text: string, label: RegExp): string | undefined {
+  const lines = text.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!label.test(lines[index].trim())) {
+      continue;
+    }
+
+    return lines[index + 1]?.trim() || undefined;
+  }
+
+  return undefined;
+}
+
+function extractNumberAfterLabel(text: string, label: RegExp): number | undefined {
+  const value = extractValueAfterLabel(text, label);
+
+  return value ? parseGermanNumber(value) : undefined;
+}
+
+function extractEuroAfterLabel(text: string, label: RegExp): number | undefined {
+  const value = extractValueAfterLabel(text, label);
+
+  if (!value) {
+    return undefined;
+  }
+
+  return extractEuroPrice(value) ?? parseGermanNumber(value);
+}
+
+function extractAreaAfterLabel(text: string, label: RegExp): number | undefined {
+  const value = extractValueAfterLabel(text, label);
+
+  if (!value || !/m\s*(?:²|2|q|qm)/i.test(value)) {
+    return undefined;
+  }
+
+  return parseGermanNumber(value);
 }
 
 function extractLabeledUrl(text: string, label: RegExp): string | undefined {
