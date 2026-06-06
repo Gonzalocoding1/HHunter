@@ -11,7 +11,7 @@ Create Listing -> Extract Details -> Enrich Contact -> Generate Letter -> Review
 ## Required Screens
 
 - `Inbox`: new and prepared listings
-- `Listing Detail`: extracted listing data, source URL, score, score reasons, contact data and raw confidence notes
+- `Listing Detail`: extracted listing data, source URL, duplicate status, score, score reasons, contact data and raw confidence notes
 - `Letter Review`: generated German application letter with edit controls
 - `Approval`: approve, reject or keep for later
 - `Pipeline`: status overview and timeline for all listings

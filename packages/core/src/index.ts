@@ -84,6 +84,11 @@ export type ScoredListingInput = {
   equipment?: string[];
 };
 
+export type FuzzyDuplicateListingInput = Pick<
+  ScoredListingInput,
+  "title" | "location" | "priceEur" | "rooms" | "livingAreaSqm"
+>;
+
 export type SearchProfile = {
   city: string;
   maxPriceEur: number;
@@ -162,12 +167,74 @@ export function scoreListing(listing: ScoredListingInput, profile: SearchProfile
   };
 }
 
+export function isFuzzyDuplicateListing(
+  listing: FuzzyDuplicateListingInput,
+  candidate: FuzzyDuplicateListingInput
+): boolean {
+  if (!listing.location || !candidate.location) {
+    return false;
+  }
+
+  if (normalizeDuplicateLocation(listing.location) !== normalizeDuplicateLocation(candidate.location)) {
+    return false;
+  }
+
+  if (!numbersWithin(listing.priceEur, candidate.priceEur, 50)) {
+    return false;
+  }
+
+  if (!numbersWithin(listing.rooms, candidate.rooms, 0)) {
+    return false;
+  }
+
+  if (!numbersWithin(listing.livingAreaSqm, candidate.livingAreaSqm, 3)) {
+    return false;
+  }
+
+  return titleTokenOverlap(listing.title, candidate.title) >= 0.5;
+}
+
 function normalizeScoringText(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/ö/g, "o");
+}
+
+function normalizeDuplicateLocation(value: string): string {
+  return normalizeScoringText(value).replace(/oe/g, "o").replace(/\s+/g, " ").trim();
+}
+
+function numbersWithin(left: number | undefined, right: number | undefined, tolerance: number): boolean {
+  if (left === undefined || right === undefined) {
+    return false;
+  }
+
+  return Math.abs(left - right) <= tolerance;
+}
+
+function titleTokenOverlap(left: string, right: string): number {
+  const leftTokens = tokenizeDuplicateTitle(left);
+  const rightTokens = tokenizeDuplicateTitle(right);
+
+  if (leftTokens.length === 0 || rightTokens.length === 0) {
+    return 0;
+  }
+
+  const rightTokenSet = new Set(rightTokens);
+  const matchingTokens = leftTokens.filter((token) => rightTokenSet.has(token));
+
+  return matchingTokens.length / Math.max(leftTokens.length, rightTokens.length);
+}
+
+function tokenizeDuplicateTitle(value: string): string[] {
+  const ignoredTokens = new Set(["wohnung", "zimmer", "mit", "und", "der", "die", "das", "im", "in"]);
+
+  return normalizeScoringText(value)
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 1 && !ignoredTokens.has(token));
 }
 
 function scoreLabelFor(score: number): string {

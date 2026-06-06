@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { scoreListing } from "./index.ts";
+import { isFuzzyDuplicateListing, scoreListing } from "./index.ts";
 
 test("scoreListing gives high scores with explainable reasons for matching listings", () => {
   const result = scoreListing({
@@ -66,4 +66,48 @@ test("scoreListing uses a custom search profile", () => {
     "Lage passt zu Berlin",
     "Ausstattung passt: Einbauküche"
   ]);
+});
+
+test("isFuzzyDuplicateListing detects likely duplicate apartments", () => {
+  assert.equal(
+    isFuzzyDuplicateListing(
+      {
+        title: "Helle 2 Zimmer Wohnung mit Balkon",
+        location: "50667 Koeln",
+        priceEur: 1250,
+        rooms: 2,
+        livingAreaSqm: 61
+      },
+      {
+        title: "Helle 2-Zimmer-Wohnung Balkon",
+        location: "50667 Köln",
+        priceEur: 1270,
+        rooms: 2,
+        livingAreaSqm: 60
+      }
+    ),
+    true
+  );
+});
+
+test("isFuzzyDuplicateListing rejects listings with different hard facts", () => {
+  assert.equal(
+    isFuzzyDuplicateListing(
+      {
+        title: "Helle 2 Zimmer Wohnung mit Balkon",
+        location: "50667 Koeln",
+        priceEur: 1250,
+        rooms: 2,
+        livingAreaSqm: 61
+      },
+      {
+        title: "Helle 2 Zimmer Wohnung mit Balkon",
+        location: "50825 Koeln",
+        priceEur: 1500,
+        rooms: 3,
+        livingAreaSqm: 75
+      }
+    ),
+    false
+  );
 });

@@ -30,6 +30,7 @@ create table if not exists listings (
 create unique index if not exists listings_normalized_url_idx on listings (normalized_url);
 create index if not exists listings_application_status_idx on listings (application_status);
 create index if not exists listings_status_idx on listings (status);
+create index if not exists listings_duplicate_of_id_idx on listings (duplicate_of_id);
 
 alter table listings add column if not exists application_draft text;
 alter table listings add column if not exists application_draft_generated_at timestamptz;

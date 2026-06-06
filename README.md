@@ -38,6 +38,8 @@ Out of scope for today:
 2. `Extract Details`
    The worker scrapes the listing page and extracts fields such as title, location, price, rooms, living area, floor, equipment, availability, source URL and raw page snapshot. `immobilie1.de` and `kleinanzeigen.de` use source-specific parser rules with the generic parser as fallback.
 
+   After extraction, HomeHunter checks similar existing listings and marks likely duplicates as `duplicate` with a `duplicateOfId` reference.
+
 3. `Enrich Contact`
    If the listing names a contact person or company, HomeHunter stores public contact data found directly in the listing text, such as phone number, email address or contact form URL. Portal support emails, invalid phone placeholders and call-to-action contact labels are ignored.
 
@@ -209,7 +211,7 @@ Phase 1:
 Phase 2:
 
 - [x] Exact URL duplicate prevention
-- [ ] Fuzzy duplicate detection
+- [x] Fuzzy duplicate detection
 - [x] Relevance scoring
 - [x] User/search profile configuration
 - [x] Contact enrichment from listing text

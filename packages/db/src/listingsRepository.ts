@@ -1,4 +1,10 @@
-import type { ContactInfo, Listing, ListingTimelineEvent, SourceId } from "@homehunter/core";
+import {
+  isFuzzyDuplicateListing,
+  type ContactInfo,
+  type Listing,
+  type ListingTimelineEvent,
+  type SourceId
+} from "@homehunter/core";
 import type { ReviewDecision } from "@homehunter/core";
 
 export type Queryable = {
@@ -63,6 +69,15 @@ type TimelineEventRow = {
   message: string;
   payload: Record<string, unknown> | null;
   created_at: Date | string;
+};
+
+type FuzzyDuplicateCandidateRow = {
+  id: string;
+  title: string;
+  location: string | null;
+  price_eur: number | null;
+  rooms: number | null;
+  living_area_sqm: number | null;
 };
 
 export function createListingsRepository(db: Queryable) {
@@ -147,10 +162,6 @@ export function createListingsRepository(db: Queryable) {
       );
 
       const row = result.rows[0];
-      if (row) {
-        await appendTimelineEvent(db, id, "review_decision", `Review decision: ${decision}`, { decision });
-      }
-
       return row ? mapListingRow(row as ListingRow) : null;
     },
 
@@ -168,7 +179,7 @@ export function createListingsRepository(db: Queryable) {
 
       const row = result.rows[0];
       if (row) {
-        await appendTimelineEvent(db, id, "letter_generated", "Application letter generated");
+        await appendTimelineEvent(db, id, "review_decision", `Review decision: ${decision}`, { decision });
       }
 
       return row ? mapListingRow(row as ListingRow) : null;
@@ -187,10 +198,16 @@ export function createListingsRepository(db: Queryable) {
       );
 
       const row = result.rows[0];
+      if (row) {
+        await appendTimelineEvent(db, id, "letter_generated", "Application letter generated");
+      }
+
       return row ? mapListingRow(row as ListingRow) : null;
     },
 
     async updateListingExtraction(id: string, extraction: UpdateListingExtractionInput): Promise<Listing | null> {
+      const duplicateOfId = await findFuzzyDuplicateListingId(db, id, extraction);
+      const status: Listing["status"] = duplicateOfId ? "duplicate" : "new";
       const result = await db.query(
         `update listings
         set title = $2,
@@ -206,6 +223,8 @@ export function createListingsRepository(db: Queryable) {
           contact = $12,
           score = $13,
           score_label = $14,
+          status = $17,
+          duplicate_of_id = $18,
           raw_data = jsonb_set(
             jsonb_set(coalesce(raw_data, '{}'::jsonb), '{extraction}', $16::jsonb, true),
             '{scoring}',
@@ -231,7 +250,9 @@ export function createListingsRepository(db: Queryable) {
           extraction.score ?? 0,
           extraction.scoreLabel ?? "Nicht bewertet",
           JSON.stringify(extraction.scoring ?? {}),
-          JSON.stringify(extraction.rawData)
+          JSON.stringify(extraction.rawData),
+          status,
+          duplicateOfId
         ]
       );
 
@@ -239,13 +260,57 @@ export function createListingsRepository(db: Queryable) {
       if (row) {
         await appendTimelineEvent(db, id, "listing_extracted", "Listing extracted", {
           score: extraction.score,
-          scoreLabel: extraction.scoreLabel
+          scoreLabel: extraction.scoreLabel,
+          ...(duplicateOfId ? { duplicateOfId } : {})
         });
       }
 
       return row ? mapListingRow(row as ListingRow) : null;
     }
   };
+}
+
+async function findFuzzyDuplicateListingId(
+  db: Queryable,
+  id: string,
+  extraction: UpdateListingExtractionInput
+): Promise<string | null> {
+  const result = await db.query(
+    `select id, title, location, price_eur, rooms, living_area_sqm
+    from listings
+    where id <> $1
+      and status <> 'duplicate'
+      and location is not null
+      and price_eur is not null
+      and rooms is not null
+      and living_area_sqm is not null
+    order by created_at asc`,
+    [id]
+  );
+
+  const duplicate = result.rows
+    .map((row) => row as FuzzyDuplicateCandidateRow)
+    .filter((row) => row.id !== id)
+    .find((row) =>
+      isFuzzyDuplicateListing(
+        {
+          title: extraction.title,
+          location: extraction.location,
+          priceEur: extraction.priceEur,
+          rooms: extraction.rooms,
+          livingAreaSqm: extraction.livingAreaSqm
+        },
+        {
+          title: row.title,
+          location: row.location ?? undefined,
+          priceEur: row.price_eur ?? undefined,
+          rooms: row.rooms ?? undefined,
+          livingAreaSqm: row.living_area_sqm ?? undefined
+        }
+      )
+    );
+
+  return duplicate?.id ?? null;
 }
 
 async function appendTimelineEvent(

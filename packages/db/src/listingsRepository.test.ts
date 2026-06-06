@@ -250,6 +250,55 @@ test("getListingById returns null when no row exists", async () => {
   assert.equal(await repository.getListingById("missing"), null);
 });
 
+test("getListingById maps an existing listing without writing timeline events", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      return {
+        rows: [
+          {
+            id: "listing-1",
+            source_id: "kleinanzeigen",
+            source_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            normalized_url: "https://www.kleinanzeigen.de/s-anzeige/demo/123",
+            title: "Schöne Wohnung",
+            location: null,
+            price_eur: null,
+            rooms: null,
+            living_area_sqm: null,
+            floor: null,
+            equipment: [],
+            score: 0,
+            score_label: "Nicht bewertet",
+            duplicate_of_id: null,
+            status: "new",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: null,
+            application_draft: null,
+            application_draft_generated_at: null,
+            review_status: "new",
+            application_status: "new",
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T11:00:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const listing = await repository.getListingById("listing-1");
+
+  assert.equal(queries.length, 1);
+  assert.equal(listing?.id, "listing-1");
+  assert.equal(listing?.title, "Schöne Wohnung");
+});
+
 test("updateReviewDecision persists approved review status", async () => {
   const queries: Array<{ text: string; values: unknown[] }> = [];
   const db: Queryable = {
@@ -294,6 +343,12 @@ test("updateReviewDecision persists approved review status", async () => {
 
   assert.match(queries[0].text, /update listings/i);
   assert.deepEqual(queries[0].values, ["listing-1", "approved", "ready_to_send"]);
+  assert.deepEqual(queries[1].values.slice(1), [
+    "listing-1",
+    "review_decision",
+    "Review decision: approved",
+    { decision: "approved" }
+  ]);
   assert.equal(updated?.reviewStatus, "approved");
   assert.equal(updated?.applicationStatus, "ready_to_send");
 });
@@ -394,6 +449,12 @@ test("saveApplicationDraft stores a prepared draft and marks listing prepared", 
 
   assert.match(queries[0].text, /update listings/i);
   assert.deepEqual(queries[0].values, ["listing-1", "Sehr geehrte Damen und Herren"]);
+  assert.deepEqual(queries[1].values.slice(1), [
+    "listing-1",
+    "letter_generated",
+    "Application letter generated",
+    null
+  ]);
   assert.deepEqual(updated, {
     id: "listing-1",
     sourceId: "kleinanzeigen",
@@ -516,8 +577,9 @@ test("updateListingExtraction stores extracted listing details without changing 
     rawData: { statusCode: 200 }
   });
 
-  assert.match(queries[0].text, /update listings/i);
-  assert.deepEqual(queries[0].values, [
+  assert.match(queries[0].text, /select id, title, location, price_eur, rooms, living_area_sqm/i);
+  assert.match(queries[1].text, /update listings/i);
+  assert.deepEqual(queries[1].values, [
     "listing-1",
     "Helle 2-Zimmer-Wohnung",
     "50667 Koeln",
@@ -539,7 +601,9 @@ test("updateListingExtraction stores extracted listing details without changing 
     100,
     "Top Match",
     JSON.stringify({ score: 100, scoreLabel: "Top Match", reasons: ["Preis liegt im Budget"] }),
-    JSON.stringify({ statusCode: 200 })
+    JSON.stringify({ statusCode: 200 }),
+    "new",
+    null
   ]);
   assert.deepEqual(updated, {
     id: "listing-1",
@@ -575,4 +639,83 @@ test("updateListingExtraction stores extracted listing details without changing 
     createdAt: "2026-06-06T11:00:00.000Z",
     updatedAt: "2026-06-06T12:15:00.000Z"
   });
+});
+
+test("updateListingExtraction marks likely duplicate listings", async () => {
+  const queries: Array<{ text: string; values: unknown[] }> = [];
+  const db: Queryable = {
+    async query(text, values = []) {
+      queries.push({ text, values });
+
+      if (/select id, title, location, price_eur, rooms, living_area_sqm/i.test(text)) {
+        return {
+          rows: [
+            {
+              id: "original-listing",
+              title: "Helle 2 Zimmer Wohnung mit Balkon",
+              location: "50667 Köln",
+              price_eur: 1270,
+              rooms: 2,
+              living_area_sqm: 60
+            }
+          ]
+        };
+      }
+
+      return {
+        rows: [
+          {
+            id: "duplicate-listing",
+            source_id: "kleinanzeigen",
+            source_url: "https://www.kleinanzeigen.de/s-anzeige/demo/456",
+            normalized_url: "https://www.kleinanzeigen.de/s-anzeige/demo/456",
+            title: "Helle 2-Zimmer-Wohnung Balkon",
+            location: "50667 Koeln",
+            price_eur: 1250,
+            rooms: 2,
+            living_area_sqm: 61,
+            floor: null,
+            equipment: ["Balkon"],
+            score: 90,
+            score_label: "Top Match",
+            duplicate_of_id: "original-listing",
+            status: "duplicate",
+            contact_method: "form",
+            contact_email: null,
+            application_url: null,
+            contact: null,
+            raw_data: {
+              extraction: { statusCode: 200 },
+              scoring: { score: 90 }
+            },
+            application_draft: null,
+            application_draft_generated_at: null,
+            review_status: "new",
+            application_status: "new",
+            created_at: new Date("2026-06-06T11:00:00.000Z"),
+            updated_at: new Date("2026-06-06T12:15:00.000Z")
+          }
+        ]
+      };
+    }
+  };
+
+  const repository = createListingsRepository(db);
+  const updated = await repository.updateListingExtraction("duplicate-listing", {
+    title: "Helle 2-Zimmer-Wohnung Balkon",
+    location: "50667 Koeln",
+    priceEur: 1250,
+    rooms: 2,
+    livingAreaSqm: 61,
+    equipment: ["Balkon"],
+    score: 90,
+    scoreLabel: "Top Match",
+    scoring: { score: 90 },
+    rawData: { statusCode: 200 }
+  });
+
+  assert.equal(queries[1].values[16], "duplicate");
+  assert.equal(queries[1].values[17], "original-listing");
+  assert.equal(updated?.status, "duplicate");
+  assert.equal(updated?.duplicateOfId, "original-listing");
 });
