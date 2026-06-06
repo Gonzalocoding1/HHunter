@@ -19,6 +19,7 @@ Today we optimize for:
 - Playwright source checks for portals that currently work
 - PostgreSQL as the persistence layer
 - API contracts that the Bilt app can use
+- a disabled-by-default worker scheduler for later automatic checks
 - a strict approval boundary before anything is marked ready to send
 
 Out of scope for today:
@@ -144,6 +145,15 @@ Run the worker placeholder:
 npm run dev:worker
 ```
 
+The worker scheduler is disabled by default. To enable scheduled checks later:
+
+```env
+WORKER_SCHEDULER_ENABLED=true
+WORKER_SCHEDULER_INTERVAL_MS=900000
+```
+
+The current scheduled job is a safe placeholder and does not send applications.
+
 Run portal smoke checks:
 
 ```bash
@@ -217,7 +227,7 @@ Phase 2:
 - [x] Contact enrichment from listing text
 - [x] Contact enrichment quality checks
 - [x] Source-specific parsers
-- [ ] Background scheduling
+- [x] Background scheduling
 - [x] Status timeline / audit log
 
 Phase 3:

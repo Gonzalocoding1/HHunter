@@ -35,3 +35,5 @@ API contract:
 - `PUT /search-profile` with the configured city, budget, minimum size, rooms and preferred equipment
 
 Keep review state in the HomeHunter API. Do not create separate local-only state in the app.
+
+The backend worker may later run scheduled listing checks, but the scheduler is disabled by default and must never bypass the app review flow.

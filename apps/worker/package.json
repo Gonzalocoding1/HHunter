@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./extractListing": "./src/extractListing.ts",
-    "./fetchListingPage": "./src/fetchListingPage.ts"
+    "./fetchListingPage": "./src/fetchListingPage.ts",
+    "./scheduler": "./src/scheduler.ts"
   },
   "dependencies": {
     "@homehunter/core": "0.1.0",
