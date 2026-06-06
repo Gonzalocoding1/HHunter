@@ -1,0 +1,19 @@
+{
+  "name": "@hunterai/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@hunterai/core": "0.1.0",
+    "@hunterai/sources": "0.1.0",
+    "dotenv": "^17.2.3",
+    "playwright": "^1.60.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

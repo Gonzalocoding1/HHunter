@@ -1,0 +1,21 @@
+{
+  "name": "hunterai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private single-user apartment hunting assistant for Germany",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:worker": "npm run dev -w apps/worker",
+    "test:smoke": "playwright test tests/portals.smoke.spec.js --reporter=line"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
